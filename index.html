@@ -1,0 +1,1216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>School Bus Fees Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+/* ═══ PORTAL STYLES ═══ */
+:root {
+  --bus: #f5a623; --bus-dark: #d4861a; --navy: #1a2340;
+  --navy2: #243055; --green: #27ae60; --red: #e74c3c;
+  --sky: #3498db; --light: #f4f7fb; --card: #ffffff;
+  --border: #e2e8f2; --text: #1a2340; --muted: #7a8599;
+  --shadow: 0 4px 24px rgba(26,35,64,0.10); --radius: 16px;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: var(--light); color: var(--text); min-height: 100vh; }
+
+/* PORTAL VIEW */
+#portalView { display: block; }
+#formView { display: none; }
+
+.topbar {
+  background: var(--navy); color: #fff; padding: 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  height: 64px; position: sticky; top: 0; z-index: 100;
+  box-shadow: 0 2px 16px rgba(26,35,64,0.18);
+}
+.topbar-brand { display: flex; align-items: center; gap: 12px; }
+.topbar-icon { width: 40px; height: 40px; background: var(--bus); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 22px; }
+.topbar-title { font-size: 1.18rem; font-weight: 800; }
+.topbar-sub { font-size: 0.78rem; color: #aab4cc; font-weight: 600; }
+.topbar-school { font-size: 0.85rem; color: var(--bus); font-weight: 700; }
+
+.tabs { background: var(--navy2); display: flex; padding: 0 20px; border-bottom: 3px solid var(--bus); overflow-x: auto; }
+.tab { padding: 14px 20px; color: #aab4cc; font-weight: 700; font-size: 0.88rem; cursor: pointer; border: none; background: none; border-bottom: 3px solid transparent; margin-bottom: -3px; transition: all .2s; white-space: nowrap; }
+.tab.active { color: var(--bus); border-bottom-color: var(--bus); background: rgba(245,166,35,0.07); }
+.tab:hover:not(.active) { color: #fff; }
+
+.content { max-width: 1100px; margin: 0 auto; padding: 28px 16px; }
+.page { display: none; }
+.page.active { display: block; }
+
+.card { background: var(--card); border-radius: var(--radius); box-shadow: var(--shadow); padding: 28px; margin-bottom: 22px; border: 1px solid var(--border); }
+.card-title { font-size: 1.05rem; font-weight: 800; color: var(--navy); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+
+.gform { display: flex; flex-direction: column; gap: 18px; }
+.gform-field { display: flex; flex-direction: column; gap: 6px; }
+.gform-label { font-size: 0.85rem; font-weight: 700; color: var(--navy); }
+.gform-label .req { color: var(--red); }
+.gform-input, .gform-select { border: 2px solid var(--border); border-radius: 10px; padding: 11px 14px; font-family: 'Nunito', sans-serif; font-size: 0.97rem; color: var(--text); background: var(--light); outline: none; transition: border .2s; }
+.gform-input:focus, .gform-select:focus { border-color: var(--bus); background: #fff; box-shadow: 0 0 0 3px rgba(245,166,35,0.15); }
+.gform-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media(max-width:600px){ .gform-row { grid-template-columns: 1fr; } }
+
+.btn { padding: 11px 26px; border-radius: 10px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.95rem; cursor: pointer; border: none; transition: all .18s; }
+.btn-primary { background: var(--bus); color: #fff; box-shadow: 0 4px 14px rgba(245,166,35,0.3); }
+.btn-primary:hover { background: var(--bus-dark); transform: translateY(-1px); }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { background: #219a52; }
+.btn-red { background: var(--red); color: #fff; }
+.btn-sky { background: var(--sky); color: #fff; }
+.btn-outline { background: transparent; color: var(--navy); border: 2px solid var(--border); }
+.btn-outline:hover { border-color: var(--bus); color: var(--bus); }
+.btn-sm { padding: 6px 14px; font-size: 0.82rem; border-radius: 7px; }
+
+.stats-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 16px; margin-bottom: 22px; }
+@media(max-width:700px){ .stats-row { grid-template-columns: 1fr 1fr; } }
+.stat-card { background: var(--card); border-radius: var(--radius); padding: 20px 18px; box-shadow: var(--shadow); border: 1px solid var(--border); text-align: center; }
+.stat-num { font-size: 2rem; font-weight: 900; }
+.stat-label { font-size: 0.78rem; color: var(--muted); font-weight: 700; margin-top: 2px; }
+
+.tbl-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+th { background: var(--navy); color: #fff; padding: 11px 13px; text-align: left; font-weight: 700; font-size: 0.82rem; }
+th:first-child { border-radius: 8px 0 0 8px; }
+th:last-child { border-radius: 0 8px 8px 0; }
+td { padding: 10px 13px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #fdf6e9; }
+
+.badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.78rem; font-weight: 700; }
+.badge-paid { background: #d4f7e0; color: #1a7a42; }
+.badge-unpaid { background: #fde8e8; color: #c0392b; }
+.badge-partial { background: #fef6d8; color: #b57c00; }
+
+.route-tag { display: inline-block; background: #e8f0fe; color: #1a56c9; border-radius: 6px; padding: 2px 9px; font-size: 0.78rem; font-weight: 700; }
+.info-box { background: #fff8e8; border: 2px solid #f5a623; border-radius: 12px; padding: 14px 18px; font-size: 0.88rem; color: #7a5200; margin-bottom: 16px; font-weight: 600; }
+.sec-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
+.sec-hdr h2 { font-size: 1.1rem; font-weight: 800; color: var(--navy); }
+.flex-gap { display: flex; gap: 10px; flex-wrap: wrap; }
+.ml-auto { margin-left: auto; }
+.text-green { color: var(--green); font-weight: 800; }
+.text-red { color: var(--red); font-weight: 800; }
+.text-muted { color: var(--muted); font-size: 0.83rem; }
+.mono { font-family: 'JetBrains Mono', monospace; }
+hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0; }
+.search-box { position: relative; margin-bottom: 16px; }
+.search-box input { width: 100%; padding: 11px 14px 11px 40px; border: 2px solid var(--border); border-radius: 10px; font-family: 'Nunito',sans-serif; font-size: 0.95rem; background: var(--light); outline: none; }
+.search-box input:focus { border-color: var(--bus); background: #fff; }
+.search-box::before { content: '🔍'; position: absolute; left: 13px; top: 50%; transform: translateY(-50%); font-size: 0.9rem; }
+.empty-state { text-align: center; padding: 50px 20px; color: var(--muted); }
+.empty-state .es-icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state p { font-weight: 700; font-size: 1rem; }
+.amt-input { border: 2px solid var(--border); border-radius: 8px; padding: 7px 10px; font-family: 'JetBrains Mono',monospace; font-size: 0.92rem; width: 100px; outline: none; }
+.amt-input:focus { border-color: var(--bus); }
+.report-month-row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 20px; }
+.rm-chip { padding: 7px 16px; border-radius: 20px; border: 2px solid var(--border); cursor: pointer; font-weight: 700; font-size: 0.85rem; background: var(--light); transition: all .15s; }
+.rm-chip.active { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+#toast { position: fixed; bottom: 28px; right: 28px; background: var(--navy); color: #fff; padding: 13px 22px; border-radius: 12px; font-weight: 700; font-size: 0.92rem; box-shadow: 0 8px 30px rgba(26,35,64,0.25); opacity: 0; pointer-events: none; transition: opacity .3s; z-index: 9999; }
+#toast.show { opacity: 1; }
+
+/* ═══ PARENT FORM STYLES ═══ */
+#formView {
+  font-family: 'Nunito', sans-serif;
+  background: linear-gradient(135deg, #1a2340 0%, #243055 50%, #1a2340 100%);
+  min-height: 100vh; padding: 24px 16px 48px;
+}
+.f-header { text-align: center; margin-bottom: 28px; }
+.f-header-icon { width: 72px; height: 72px; background: var(--bus); border-radius: 20px; display: flex; align-items: center; justify-content: center; font-size: 36px; margin: 0 auto 14px; box-shadow: 0 8px 30px rgba(245,166,35,0.35); }
+.f-header h1 { color: #fff; font-size: 1.5rem; font-weight: 900; }
+.f-header p { color: #aab4cc; font-size: 0.88rem; margin-top: 4px; font-weight: 600; }
+.f-school-name { color: var(--bus); font-size: 1rem; font-weight: 800; margin-top: 2px; }
+.form-card { background: #fff; border-radius: 20px; padding: 28px 22px; max-width: 520px; margin: 0 auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.f-section-label { font-size: 0.72rem; font-weight: 900; letter-spacing: 1.5px; color: var(--bus); text-transform: uppercase; margin: 22px 0 14px; display: flex; align-items: center; gap: 8px; }
+.f-section-label::after { content: ''; flex: 1; height: 2px; background: #f0f4fa; border-radius: 2px; }
+.f-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+.f-field label { font-size: 0.85rem; font-weight: 700; color: var(--navy); }
+.f-field label .req { color: var(--red); }
+.f-field input, .f-field select { border: 2px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; font-family: 'Nunito', sans-serif; font-size: 0.95rem; color: var(--navy); background: var(--light); outline: none; transition: border .2s; width: 100%; }
+.f-field input:focus, .f-field select:focus { border-color: var(--bus); background: #fff; box-shadow: 0 0 0 3px rgba(245,166,35,0.15); }
+.f-field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media(max-width:400px){ .f-field-row { grid-template-columns: 1fr; } }
+.submit-btn { width: 100%; padding: 15px; margin-top: 22px; background: var(--bus); color: #fff; border: none; border-radius: 12px; font-family: 'Nunito', sans-serif; font-size: 1.05rem; font-weight: 900; cursor: pointer; box-shadow: 0 6px 20px rgba(245,166,35,0.35); transition: all .2s; }
+.submit-btn:hover { background: var(--bus-dark); transform: translateY(-1px); }
+.submit-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; box-shadow: none; }
+.success-screen { display: none; text-align: center; padding: 20px 0; }
+.success-icon { width: 80px; height: 80px; background: #d4f7e0; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 40px; margin: 0 auto 18px; }
+.success-screen h2 { color: var(--green); font-size: 1.4rem; margin-bottom: 8px; }
+.success-screen p { color: var(--muted); font-size: 0.9rem; line-height: 1.6; }
+.submit-another { margin-top: 20px; padding: 11px 26px; background: var(--navy); color: #fff; border: none; border-radius: 10px; font-family: 'Nunito', sans-serif; font-weight: 800; font-size: 0.9rem; cursor: pointer; }
+.spinner { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.f-error-msg { background: #fde8e8; border: 1.5px solid #f5b7b7; border-radius: 10px; padding: 12px 14px; color: #c0392b; font-size: 0.88rem; font-weight: 700; margin-top: 12px; display: none; }
+.f-info-note { background: #fff8e8; border: 1.5px solid var(--bus); border-radius: 10px; padding: 11px 14px; color: #7a5200; font-size: 0.82rem; font-weight: 600; margin-bottom: 6px; }
+.powered { text-align: center; color: #aab4cc; font-size: 0.75rem; margin-top: 20px; font-weight: 600; }
+
+@media print {
+  .topbar, .tabs, .btn, .search-box, .report-month-row, .no-print { display: none !important; }
+  body { background: #fff; }
+  .card { box-shadow: none; border: 1px solid #ccc; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════ PORTAL VIEW ═══════════════ -->
+<div id="portalView">
+<div class="topbar">
+  <div class="topbar-brand">
+    <div class="topbar-icon">🚌</div>
+    <div>
+      <div class="topbar-title">Bus Fees Portal</div>
+      <div class="topbar-sub">School Transport Management</div>
+    </div>
+  </div>
+  <div class="topbar-school" id="topSchoolName">—</div>
+</div>
+
+<div class="tabs">
+  <button class="tab active" onclick="showTab('setup')">⚙️ Setup</button>
+  <button class="tab" onclick="showTab('students')">👤 Students</button>
+  <button class="tab" onclick="showTab('fees')">💰 Fee Entry</button>
+  <button class="tab" onclick="showTab('reports')">📊 Reports</button>
+  <button class="tab" onclick="showTab('sync')">🔗 Share Form</button>
+</div>
+
+<div class="content">
+
+  <!-- SETUP -->
+  <div class="page active" id="page-setup">
+    <div class="card">
+      <div class="card-title"><span>🏫</span> School & Portal Setup</div>
+      <div class="gform">
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">School Name <span class="req">*</span></label><input class="gform-input" id="setupSchool" placeholder="School Name"></div>
+          <div class="gform-field"><label class="gform-label">Academic Year</label><input class="gform-input" id="setupYear" placeholder="e.g. 2026-27"></div>
+        </div>
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Phone</label><input class="gform-input" id="setupPhone" placeholder="School phone"></div>
+          <div class="gform-field"><label class="gform-label">Address</label><input class="gform-input" id="setupAddress" placeholder="School address"></div>
+        </div>
+        <button class="btn btn-primary" onclick="saveSetup()">💾 Save School Info</button>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>🛣️</span> Bus Routes / Stops</div>
+      <div class="info-box">Add bus routes with monthly fee amounts.</div>
+      <div id="routesList" style="margin-bottom:14px;"></div>
+      <div class="gform-row" style="margin-bottom:10px;">
+        <input class="gform-input" id="routeName" placeholder="Route name (e.g. Route A – Anna Nagar)">
+        <input class="gform-input" id="routeFee" placeholder="Monthly fee (₹)" type="number" min="0">
+      </div>
+      <button class="btn btn-primary" onclick="addRoute()">➕ Add Route</button>
+    </div>
+  </div>
+
+  <!-- STUDENTS -->
+  <div class="page" id="page-students">
+    <div class="sec-hdr">
+      <h2>👤 Student Register</h2>
+      <div class="flex-gap">
+        <button class="btn btn-primary" onclick="openAddStudent()">➕ Add Student</button>
+        <button class="btn btn-outline" onclick="exportStudents()">⬇️ Export CSV</button>
+      </div>
+    </div>
+    <div class="search-box"><input id="stuSearch" placeholder="Search by name, class, route..." oninput="renderStudents()"></div>
+    <div class="card" style="padding:0 0 10px 0; overflow:hidden;">
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Student Name</th><th>Class</th><th>Route</th><th>Monthly Fee</th><th>Parent</th><th>Phone</th><th>Actions</th></tr></thead>
+          <tbody id="stuTable"></tbody>
+        </table>
+      </div>
+      <div id="stuEmpty" class="empty-state" style="display:none;"><div class="es-icon">🚌</div><p>No students yet. Add your first student!</p></div>
+    </div>
+    <div class="card" id="addStuForm" style="display:none; border:2px solid var(--bus);">
+      <div class="card-title"><span>📋</span> <span id="stuFormTitle">Add New Student</span></div>
+      <div class="info-box">Fill all required fields marked with <span style="color:red">*</span></div>
+      <div class="gform">
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Student Full Name <span class="req">*</span></label><input class="gform-input" id="sFname" placeholder="Full name"></div>
+          <div class="gform-field"><label class="gform-label">Class / Section <span class="req">*</span></label>
+            <select class="gform-select" id="sClass">
+              <option value="">-- Select Class --</option>
+              <option>1LKG</option><option>UKG</option>
+              <option>1A</option><option>1B</option>
+              <option>2A</option><option>2B</option><option>2C</option>
+              <option>3A</option><option>3B</option>
+              <option>4A</option><option>4B</option>
+              <option>5A</option><option>5B</option>
+              <option>6A</option><option>6B</option><option>6C</option>
+              <option>7A</option><option>7B</option><option>7C</option>
+            </select>
+          </div>
+        </div>
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Roll Number</label><input class="gform-input" id="sRoll" placeholder="Roll No"></div>
+          <div class="gform-field"><label class="gform-label">Bus Route</label><select class="gform-select" id="sRoute"></select></div>
+        </div>
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Monthly Fee (₹) <span class="req">*</span></label><input class="gform-input" id="sFee" type="number" min="0" placeholder="Auto-filled from route"></div>
+          <div class="gform-field"><label class="gform-label">Admission Number</label><input class="gform-input" id="sAdm" placeholder="Adm No"></div>
+        </div>
+        <hr class="divider">
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Parent Name <span class="req">*</span></label><input class="gform-input" id="sParent" placeholder="Parent name"></div>
+          <div class="gform-field"><label class="gform-label">Phone <span class="req">*</span></label><input class="gform-input" id="sPhone" placeholder="Mobile number" type="tel"></div>
+        </div>
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Address</label><input class="gform-input" id="sAddr" placeholder="Home address"></div>
+          <div class="gform-field"><label class="gform-label">Joining Month</label>
+            <select class="gform-select" id="sJoin">
+              <option value="0">June</option><option value="1">July</option><option value="2">August</option><option value="3">September</option><option value="4">October</option><option value="5">November</option><option value="6">December</option><option value="7">January</option><option value="8">February</option><option value="9">March</option><option value="10">April</option><option value="11">May</option>
+            </select>
+          </div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-primary" onclick="saveStudent()">✅ Save Student</button>
+          <button class="btn btn-outline" onclick="cancelStuForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FEE ENTRY -->
+  <div class="page" id="page-fees">
+    <div class="sec-hdr"><h2>💰 Monthly Fee Collection</h2></div>
+
+    <!-- QUICK FEE ENTRY PANEL -->
+    <div class="card" style="border:2px solid var(--bus);">
+      <div class="card-title"><span>⚡</span> Quick Fee Entry</div>
+      <div style="display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:start;margin-bottom:16px;" id="quickEntryGrid">
+        <div class="gform-field">
+          <label class="gform-label">SL No / ID</label>
+          <input class="gform-input" id="qSlNo" type="number" min="1" placeholder="1" oninput="quickLookup()" style="font-size:1.1rem;font-weight:800;text-align:center;">
+        </div>
+        <div id="qStudentInfo" style="background:var(--light);border-radius:12px;padding:14px 18px;border:2px solid var(--border);min-height:60px;display:flex;align-items:center;">
+          <span style="color:var(--muted);font-weight:700;">← Enter SL No to find student</span>
+        </div>
+      </div>
+
+      <div id="qEntryForm" style="display:none;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;">
+          <div class="gform-field">
+            <label class="gform-label">Month <span class="req">*</span></label>
+            <select class="gform-select" id="qMonth">
+              <option value="0">June</option><option value="1">July</option><option value="2">August</option><option value="3">September</option><option value="4">October</option><option value="5">November</option><option value="6">December</option><option value="7">January</option><option value="8">February</option><option value="9">March</option><option value="10">April</option><option value="11">May</option>
+              <option value="12" style="background:#fff8e8;font-weight:800;">⭐ Advance</option>
+            </select>
+          </div>
+          <div class="gform-field">
+            <label class="gform-label">Paid Amount (₹) <span class="req">*</span></label>
+            <input class="gform-input" id="qAmt" type="number" min="0" placeholder="0" style="font-family:'JetBrains Mono',monospace;font-size:1rem;">
+          </div>
+          <div class="gform-field">
+            <label class="gform-label">Receipt No <span class="req">*</span></label>
+            <input class="gform-input" id="qRcpt" placeholder="RCP-001" style="font-family:'JetBrains Mono',monospace;">
+          </div>
+          <div class="gform-field">
+            <label class="gform-label">Date</label>
+            <input class="gform-input" id="qDate" type="date">
+          </div>
+          <div class="gform-field">
+            <label class="gform-label">Note</label>
+            <input class="gform-input" id="qNote" placeholder="Optional">
+          </div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-primary" onclick="quickSaveFee()">💾 Save & Next</button>
+          <button class="btn btn-outline" onclick="quickClear()">🔄 Clear</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- RECENT ENTRIES TABLE -->
+    <div class="card" id="recentEntriesCard" style="display:none;">
+      <div class="card-title"><span>📋</span> Today's Fee Entries</div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>SL</th><th>Student</th><th>Class</th><th>Month</th><th>Paid (₹)</th><th>Receipt No</th><th>Date</th><th>Status</th></tr></thead>
+          <tbody id="recentTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="gform-row" style="margin-bottom:0;">
+        <div class="gform-field"><label class="gform-label">Select Month</label>
+          <select class="gform-select" id="feeMonth" onchange="renderFeeEntry()">
+            <option value="0">June</option><option value="1">July</option><option value="2">August</option><option value="3">September</option><option value="4">October</option><option value="5">November</option><option value="6">December</option><option value="7">January</option><option value="8">February</option><option value="9">March</option><option value="10">April</option><option value="11">May</option>
+            <option value="12" style="background:#fff8e8;font-weight:800;">⭐ Advance</option>
+          </select>
+        </div>
+        <div class="gform-field"><label class="gform-label">Filter by Route</label><select class="gform-select" id="feeRouteFilter" onchange="renderFeeEntry()"><option value="">All Routes</option></select></div>
+        <div class="gform-field"><label class="gform-label">Filter by Class</label><input class="gform-input" id="feeClassFilter" placeholder="e.g. 5-A" oninput="renderFeeEntry()"></div>
+      </div>
+    </div>
+    <div class="stats-row" id="feeStats"></div>
+    <div class="card">
+      <div class="sec-hdr">
+        <div class="card-title" style="margin:0"><span>📝</span> All Students</div>
+        <div class="flex-gap">
+          <button class="btn btn-green btn-sm" onclick="markAllPaid()">✅ Mark All Paid</button>
+          <button class="btn btn-primary btn-sm" onclick="saveFees()">💾 Save All</button>
+        </div>
+      </div>
+      <div class="search-box"><input id="feeSearch" placeholder="Search student..." oninput="renderFeeEntry()"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Student</th><th>Class</th><th>Route</th><th>Due (₹)</th><th>Paid (₹)</th><th>Advance Month</th><th>Status</th><th>Receipt No</th><th>Date</th><th>Note</th></tr></thead>
+          <tbody id="feeTable"></tbody>
+        </table>
+      </div>
+      <div id="feeEmpty" class="empty-state" style="display:none;"><div class="es-icon">📋</div><p>No students found.</p></div>
+    </div>
+  </div>
+
+  <!-- REPORTS -->
+  <div class="page" id="page-reports">
+    <div class="sec-hdr">
+      <h2>📊 Fee Reports</h2>
+      <div class="flex-gap">
+        <button class="btn btn-outline btn-sm no-print" onclick="window.print()">🖨️ Print</button>
+        <button class="btn btn-sky btn-sm no-print" onclick="exportReport()">⬇️ Export CSV</button>
+      </div>
+    </div>
+    <div class="card" style="padding:16px 22px;">
+      <div class="card-title" style="margin-bottom:10px;"><span>📅</span> Select Month</div>
+      <div class="report-month-row" id="repMonthPicker"></div>
+    </div>
+    <div class="stats-row" id="repStats"></div>
+    <div class="card">
+      <div class="card-title"><span>🛣️</span> Route-wise Summary</div>
+      <div class="tbl-wrap"><table><thead><tr><th>Route</th><th>Students</th><th>Total Due</th><th>Collected</th><th>Pending</th><th>%</th></tr></thead><tbody id="repRouteBody"></tbody></table></div>
+    </div>
+    <div class="card">
+      <div class="card-title"><span>📋</span> Student-wise Ledger</div>
+      <div class="search-box no-print"><input id="repSearch" placeholder="Search student..." oninput="renderReport()"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Student</th><th>Class</th><th>Route</th><th>Jun</th><th>Jul</th><th>Aug</th><th>Sep</th><th>Oct</th><th>Nov</th><th>Dec</th><th>Jan</th><th>Feb</th><th>Mar</th><th>Apr</th><th>May</th><th style="background:#d4861a;">Adv</th><th>Total Paid</th><th>Total Due</th><th>Balance</th></tr></thead>
+          <tbody id="repTable"></tbody>
+        </table>
+      </div>
+      <div id="repEmpty" class="empty-state" style="display:none;"><div class="es-icon">📊</div><p>No data available.</p></div>
+    </div>
+  </div>
+
+  <!-- SHARE FORM -->
+  <div class="page" id="page-sync">
+    <div class="sec-hdr"><h2>🔗 Shareable Parent Registration Form</h2></div>
+    <div class="card">
+      <div class="card-title"><span>1️⃣</span> Cloud Storage Setup (JSONBin.io – Free)</div>
+      <div class="info-box">JSONBin.io is a free cloud service. <b>One-time setup only.</b> Go to <a href="https://jsonbin.io" target="_blank" style="color:var(--bus);">jsonbin.io</a> → Sign up → Create Bin → Copy Bin ID and Master Key.</div>
+      <div class="gform">
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">JSONBin Master Key <span class="req">*</span></label><input class="gform-input" id="jbKey" placeholder="$2b$10$..." type="password"></div>
+          <div class="gform-field"><label class="gform-label">Bin ID <span class="req">*</span></label><input class="gform-input" id="jbBin" placeholder="6845abc1..."></div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-primary" onclick="saveCloudConfig()">💾 Save & Test Connection</button>
+          <span id="connStatus" style="align-self:center;font-weight:700;font-size:0.9rem;"></span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="syncStep2" style="display:none;">
+      <div class="card-title"><span>2️⃣</span> Share Form with Parents</div>
+      <div class="info-box">📱 രക്ഷിതാക്കൾക്ക് ഈ Link WhatsApp-ൽ അയക്കുക — അവർ Phone-ൽ Form പൂരിപ്പിക്കും!</div>
+      <div class="gform-field" style="margin-bottom:14px;">
+        <label class="gform-label">📋 Share ചെയ്യാനുള്ള Link (Copy ചെയ്ത് WhatsApp-ൽ അയക്കുക)</label>
+        <div style="display:flex;gap:8px;">
+          <input class="gform-input" id="shareLink" readonly style="font-size:0.82rem;font-family:monospace;">
+          <button class="btn btn-primary" onclick="copyLink()">📋 Copy</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:16px;">
+        <div style="text-align:center;">
+          <div style="font-weight:700;font-size:0.85rem;margin-bottom:8px;color:var(--navy);">📱 QR Code — Print ചെയ്ത് Notice Board-ൽ ഒട്ടിക്കുക</div>
+          <div id="qrCode" style="background:#fff;padding:12px;border-radius:12px;border:2px solid var(--border);display:inline-block;"></div>
+          <br><button class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="printQR()">🖨️ Print QR</button>
+        </div>
+        <div style="flex:1;min-width:200px;">
+          <div style="font-weight:800;color:var(--navy);margin-bottom:10px;">എങ്ങനെ പ്രവർത്തിക്കുന്നു:</div>
+          <div style="display:flex;flex-direction:column;gap:8px;font-size:0.9rem;font-weight:600;color:var(--muted);">
+            <div>📱 രക്ഷിതാവ് QR Scan ചെയ്യുന്നു / Link തുറക്കുന്നു</div>
+            <div>📋 കുട്ടിയുടെ വിവരങ്ങൾ Fill ചെയ്ത് Submit ചെയ്യുന്നു</div>
+            <div>☁️ Cloud-ൽ Save ആകുന്നു</div>
+            <div>🔄 താഴെ "Fetch" ക്ലിക്ക് ചെയ്താൽ List കാണാം</div>
+            <div>✅ Approve ചെയ്താൽ Students Tab-ൽ Add ആകുന്നു</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="syncStep3" style="display:none;">
+      <div class="card-title"><span>3️⃣</span> Fetch New Submissions</div>
+      <div class="flex-gap" style="margin-bottom:16px;">
+        <button class="btn btn-green" onclick="fetchSubmissions()">🔄 Fetch Submissions from Cloud</button>
+        <span id="fetchStatus" style="align-self:center;font-weight:700;font-size:0.9rem;"></span>
+      </div>
+      <div id="pendingList"></div>
+    </div>
+  </div>
+
+</div><!-- end .content -->
+</div><!-- end #portalView -->
+
+<!-- ═══════════════ PARENT FORM VIEW ═══════════════ -->
+<div id="formView">
+  <div class="f-header">
+    <div class="f-header-icon">🚌</div>
+    <div class="f-school-name" id="hSchool">School Bus Registration</div>
+    <h1>Student Registration Form</h1>
+    <p id="hYear">Academic Year 2026-27 • Bus Transport</p>
+  </div>
+  <div class="form-card">
+    <div id="mainForm">
+      <div class="f-info-note">📋 Fill in all required fields marked with (*)</div>
+
+      <div class="f-field">
+        <label>Student Name <span class="req">*</span></label>
+        <input id="fName" placeholder="Enter full name" type="text">
+      </div>
+
+      <div class="f-field">
+        <label>Class <span class="req">*</span></label>
+        <select id="fClass">
+          <option value="">-- Select Class --</option>
+          <option>1LKG</option>
+          <option>UKG</option>
+          <option>1A</option><option>1B</option>
+          <option>2A</option><option>2B</option><option>2C</option>
+          <option>3A</option><option>3B</option>
+          <option>4A</option><option>4B</option>
+          <option>5A</option><option>5B</option>
+          <option>6A</option><option>6B</option><option>6C</option>
+          <option>7A</option><option>7B</option><option>7C</option>
+        </select>
+      </div>
+
+      <div class="f-field">
+        <label>Parent / Guardian Name <span class="req">*</span></label>
+        <input id="fParent" placeholder="Enter parent name">
+      </div>
+
+      <div class="f-field">
+        <label>Phone Number <span class="req">*</span></label>
+        <input id="fPhone" placeholder="Enter mobile number" type="tel">
+      </div>
+
+      <div class="f-field">
+        <label>Bus Route</label>
+        <select id="fRoute">
+          <option value="">-- Select Route --</option>
+        </select>
+      </div>
+
+      <div class="f-field">
+        <label>Trip <span class="req">*</span></label>
+        <select id="fTrip">
+          <option value="">-- Select Trip --</option>
+          <option value="Trip 1">Trip 1</option>
+          <option value="Trip 2">Trip 2</option>
+        </select>
+      </div>
+
+      <div class="f-field">
+        <label>Joining Month <span class="req">*</span></label>
+        <select id="fJoin">
+          <option value="">-- Select Month --</option>
+          <option value="0">June</option>
+          <option value="1">July</option>
+          <option value="2">August</option>
+          <option value="3">September</option>
+          <option value="4">October</option>
+          <option value="5">November</option>
+          <option value="6">December</option>
+          <option value="7">January</option>
+          <option value="8">February</option>
+          <option value="9">March</option>
+          <option value="10">April</option>
+          <option value="11">May</option>
+        </select>
+      </div>
+
+      <div class="f-error-msg" id="errMsg">⚠️ Please fill all required fields.</div>
+      <button class="submit-btn" id="submitBtn" onclick="submitForm()">✅ Submit Registration</button>
+    </div>
+    <div class="success-screen" id="successScreen">
+      <div class="success-icon">✅</div>
+      <h2>Registration Submitted!</h2>
+      <p>Thank you! Your child's details have been sent to the school.<br>The transport office will contact you shortly.</p>
+      <button class="submit-another" onclick="resetForm()">➕ Register Another Student</button>
+    </div>
+  </div>
+  <div class="powered">🚌 School Bus Fees Portal</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+// DECIDE: Portal or Parent Form?
+// If URL has ?form=1 → show parent form
+// ══════════════════════════════════════════
+const urlParams = new URLSearchParams(window.location.search);
+const IS_FORM = urlParams.get('form') === '1';
+
+if (IS_FORM) {
+  document.getElementById('portalView').style.display = 'none';
+  document.getElementById('formView').style.display = 'block';
+  initParentForm();
+}
+
+// ══════════════════════════════════════════
+// PORTAL LOGIC
+// ══════════════════════════════════════════
+const MONTHS = ['June','July','August','September','October','November','December','January','February','March','April','May','Advance'];
+const MONTHS_SHORT = ['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Adv'];
+
+function load(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } }
+function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+function fmt(n) { return '₹' + Number(n||0).toLocaleString('en-IN'); }
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = (ok ? '✅ ' : '⚠️ ') + msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+let setup = load('busSetup', { school: '', year: '', phone: '', address: '' });
+let routes = load('busRoutes', []);
+let students = load('busStudents', []);
+let fees = load('busFees', {});
+let cloudCfg = load('busCloud', { key: '', bin: '' });
+let editStuId = null;
+let selectedRepMonth = 0;
+
+function showTab(tab) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('page-' + tab).classList.add('active');
+  if (tab === 'students') renderStudents();
+  if (tab === 'fees') { populateFeeFilters(); renderFeeEntry(); }
+  if (tab === 'reports') { buildRepMonthPicker(); renderReport(); }
+  if (tab === 'sync') initSyncTab();
+}
+
+// SETUP
+function loadSetup() {
+  document.getElementById('setupSchool').value = setup.school || '';
+  document.getElementById('setupYear').value = setup.year || '';
+  document.getElementById('setupPhone').value = setup.phone || '';
+  document.getElementById('setupAddress').value = setup.address || '';
+  document.getElementById('topSchoolName').textContent = setup.school || 'School Name';
+  renderRoutes();
+}
+function saveSetup() {
+  setup.school = document.getElementById('setupSchool').value.trim();
+  setup.year = document.getElementById('setupYear').value.trim();
+  setup.phone = document.getElementById('setupPhone').value.trim();
+  setup.address = document.getElementById('setupAddress').value.trim();
+  save('busSetup', setup);
+  document.getElementById('topSchoolName').textContent = setup.school || 'School Name';
+  toast('School info saved!');
+}
+function renderRoutes() {
+  const el = document.getElementById('routesList');
+  if (!routes.length) { el.innerHTML = '<div class="text-muted" style="margin-bottom:8px;">No routes added yet.</div>'; return; }
+  el.innerHTML = routes.map((r,i) => `<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);">
+    <span class="route-tag">${r.name}</span><span class="mono">${fmt(r.fee)}/month</span>
+    <button class="btn btn-red btn-sm ml-auto" onclick="deleteRoute(${i})">🗑️</button></div>`).join('');
+}
+function addRoute() {
+  const name = document.getElementById('routeName').value.trim();
+  const fee = parseFloat(document.getElementById('routeFee').value) || 0;
+  if (!name) { toast('Enter route name', false); return; }
+  routes.push({ id: uid(), name, fee });
+  save('busRoutes', routes);
+  document.getElementById('routeName').value = '';
+  document.getElementById('routeFee').value = '';
+  renderRoutes(); toast('Route added!');
+}
+function deleteRoute(i) {
+  if (!confirm('Delete this route?')) return;
+  routes.splice(i, 1); save('busRoutes', routes); renderRoutes(); toast('Route deleted');
+}
+
+// STUDENTS
+function openAddStudent() {
+  editStuId = null;
+  document.getElementById('stuFormTitle').textContent = 'Add New Student';
+  clearStuForm(); populateRouteSelect('sRoute');
+  document.getElementById('addStuForm').style.display = 'block';
+  document.getElementById('addStuForm').scrollIntoView({ behavior: 'smooth' });
+}
+function clearStuForm() {
+  ['sFname','sRoll','sFee','sAdm','sParent','sPhone','sAddr'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('sClass').value = '';
+  document.getElementById('sJoin').value = '0';
+}
+function cancelStuForm() { document.getElementById('addStuForm').style.display = 'none'; editStuId = null; }
+function populateRouteSelect(id) {
+  const sel = document.getElementById(id);
+  sel.innerHTML = '<option value="">-- Select Route --</option>' + routes.map(r => `<option value="${r.id}">${r.name} (${fmt(r.fee)})</option>`).join('');
+  sel.onchange = function() { const r = routes.find(x => x.id === this.value); if (r) document.getElementById('sFee').value = r.fee; };
+}
+function saveStudent() {
+  const name = document.getElementById('sFname').value.trim();
+  const cls = document.getElementById('sClass').value.trim();
+  const routeId = document.getElementById('sRoute').value;
+  const fee = parseFloat(document.getElementById('sFee').value) || 0;
+  const parent = document.getElementById('sParent').value.trim();
+  const phone = document.getElementById('sPhone').value.trim();
+  if (!name || !cls || !parent || !phone) { toast('Fill all required fields', false); return; }
+  const stu = { id: editStuId || uid(), name, cls, roll: document.getElementById('sRoll').value.trim(), routeId, fee, adm: document.getElementById('sAdm').value.trim(), parent, phone, address: document.getElementById('sAddr').value.trim(), joinMonth: parseInt(document.getElementById('sJoin').value) };
+  if (editStuId) { const idx = students.findIndex(s => s.id === editStuId); students[idx] = stu; toast('Student updated!'); }
+  else { students.push(stu); toast('Student added!'); }
+  save('busStudents', students); cancelStuForm(); renderStudents();
+}
+function editStudent(id) {
+  editStuId = id; const s = students.find(x => x.id === id);
+  document.getElementById('stuFormTitle').textContent = 'Edit Student';
+  populateRouteSelect('sRoute');
+  document.getElementById('sFname').value = s.name; document.getElementById('sClass').value = s.cls;
+  document.getElementById('sRoll').value = s.roll||''; document.getElementById('sRoute').value = s.routeId;
+  document.getElementById('sFee').value = s.fee; document.getElementById('sAdm').value = s.adm||'';
+  document.getElementById('sParent').value = s.parent; document.getElementById('sPhone').value = s.phone;
+  document.getElementById('sAddr').value = s.address||''; document.getElementById('sJoin').value = s.joinMonth||0;
+  document.getElementById('addStuForm').style.display = 'block';
+  document.getElementById('addStuForm').scrollIntoView({ behavior: 'smooth' });
+}
+function deleteStudent(id) {
+  if (!confirm('Delete this student?')) return;
+  students = students.filter(s => s.id !== id); delete fees[id];
+  save('busStudents', students); save('busFees', fees); renderStudents(); toast('Student deleted');
+}
+function getRoute(id) { const r = routes.find(x => x.id === id); return r ? r.name : '—'; }
+function renderStudents() {
+  const q = (document.getElementById('stuSearch').value || '').toLowerCase();
+  const list = students.filter(s => s.name.toLowerCase().includes(q) || s.cls.toLowerCase().includes(q) || (getRoute(s.routeId)||'').toLowerCase().includes(q));
+  document.getElementById('stuEmpty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('stuTable').innerHTML = list.map((s,i) => `<tr>
+    <td class="text-muted">${i+1}</td>
+    <td><b>${s.name}</b>${s.adm?`<br><span class="text-muted">${s.adm}</span>`:''}</td>
+    <td>${s.cls}</td><td><span class="route-tag">${getRoute(s.routeId)}</span></td>
+    <td class="mono">${fmt(s.fee)}</td><td>${s.parent}</td><td>${s.phone}</td>
+    <td><div class="flex-gap"><button class="btn btn-outline btn-sm" onclick="editStudent('${s.id}')">✏️</button><button class="btn btn-red btn-sm" onclick="deleteStudent('${s.id}')">🗑️</button></div></td>
+  </tr>`).join('');
+}
+function exportStudents() {
+  let csv = 'Name,Class,Roll,Route,Monthly Fee,Parent,Phone\n';
+  students.forEach(s => { csv += `"${s.name}","${s.cls}","${s.roll||''}","${getRoute(s.routeId)}","${s.fee}","${s.parent}","${s.phone}"\n`; });
+  downloadCSV(csv, 'students.csv');
+}
+
+// FEE ENTRY
+function populateFeeFilters() {
+  const sel = document.getElementById('feeRouteFilter');
+  sel.innerHTML = '<option value="">All Routes</option>' + routes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+}
+function renderFeeEntry() {
+  const mIdx = parseInt(document.getElementById('feeMonth').value);
+  const routeF = document.getElementById('feeRouteFilter').value;
+  const classF = (document.getElementById('feeClassFilter').value || '').toLowerCase();
+  const search = (document.getElementById('feeSearch').value || '').toLowerCase();
+  let list = students.filter(s => (!routeF || s.routeId === routeF) && (!classF || s.cls.toLowerCase().includes(classF)) && (!search || s.name.toLowerCase().includes(search)));
+  document.getElementById('feeEmpty').style.display = list.length ? 'none' : 'block';
+
+  // ── Stats: always count ALL students for selected month (ignore search/filter) ──
+  let totalDue=0, totalPaid=0, countPaid=0, countUnpaid=0;
+  students.forEach(s => {
+    const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0, status:'unpaid' };
+    totalDue += s.fee;
+    totalPaid += Number(f.paid||0);
+    if (f.status==='paid') countPaid++; else countUnpaid++;
+  });
+
+  const MONTH_OPTS = ['June','July','August','September','October','November','December','January','February','March','April','May'];
+  document.getElementById('feeTable').innerHTML = list.map((s,i) => {
+    const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0, advanceMonth:'', status:'unpaid', date:'', note:'', receipt:'' };
+    const badge = f.status==='paid' ? '<span class="badge badge-paid">Paid</span>' : f.status==='partial' ? '<span class="badge badge-partial">Partial</span>' : '<span class="badge badge-unpaid">Unpaid</span>';
+    const advMonthOpts = `<option value="">-- None --</option>` +
+      MONTH_OPTS.map((m,mi) => `<option value="${mi}" ${f.advanceMonth===String(mi)?'selected':''}>${m}</option>`).join('');
+    return `<tr><td class="text-muted">${students.indexOf(s)+1}</td><td><b>${s.name}</b><br><span class="text-muted">${s.parent}</span></td><td>${s.cls}</td>
+    <td><span class="route-tag">${getRoute(s.routeId)}</span></td><td class="mono">${fmt(s.fee)}</td>
+    <td><input class="amt-input" id="amt-${s.id}" type="number" min="0" value="${f.paid||''}" placeholder="0" onchange="updateFeeStatus('${s.id}',${mIdx},${s.fee})"></td>
+    <td>
+      <select id="adv-${s.id}" style="border:2px solid #f5a623;border-radius:8px;padding:6px 8px;font-family:'Nunito',sans-serif;font-size:0.82rem;background:#fffbe8;outline:none;cursor:pointer;">
+        ${advMonthOpts}
+      </select>
+    </td>
+    <td id="status-${s.id}">${badge}</td>
+    <td><input class="gform-input" style="width:110px;padding:6px 9px;font-size:0.82rem;font-family:monospace;" id="rcpt-${s.id}" placeholder="RCP-001" value="${f.receipt||''}"></td>
+    <td><input class="gform-input" style="width:120px;padding:6px 9px;font-size:0.82rem;" id="date-${s.id}" type="date" value="${f.date||''}"></td>
+    <td><input class="gform-input" style="width:110px;padding:6px 9px;font-size:0.82rem;" id="note-${s.id}" placeholder="Note" value="${f.note||''}"></td></tr>`;
+  }).join('');
+
+  document.getElementById('feeStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num" style="color:var(--navy)">${students.length}</div><div class="stat-label">Total Students</div></div>
+    <div class="stat-card"><div class="stat-num text-green">${countPaid}</div><div class="stat-label">Paid</div></div>
+    <div class="stat-card"><div class="stat-num text-red">${countUnpaid}</div><div class="stat-label">Unpaid</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--bus)">${fmt(totalPaid)}</div><div class="stat-label">Collected / ${fmt(totalDue)}</div></div>`;
+}
+function updateFeeStatus(stuId, mIdx, due) {
+  const paid = parseFloat(document.getElementById('amt-'+stuId).value)||0;
+  const status = paid>=due ? 'paid' : paid>0 ? 'partial' : 'unpaid';
+  const badge = status==='paid' ? '<span class="badge badge-paid">Paid</span>' : status==='partial' ? '<span class="badge badge-partial">Partial</span>' : '<span class="badge badge-unpaid">Unpaid</span>';
+  document.getElementById('status-'+stuId).innerHTML = badge;
+}
+function markAllPaid() {
+  const mIdx = parseInt(document.getElementById('feeMonth').value);
+  students.forEach(s => { const el = document.getElementById('amt-'+s.id); if (el) { el.value = s.fee; updateFeeStatus(s.id, mIdx, s.fee); } });
+}
+function saveFees() {
+  const mIdx = parseInt(document.getElementById('feeMonth').value);
+  students.forEach(s => {
+    const amtEl = document.getElementById('amt-'+s.id); if (!amtEl) return;
+    const paid = parseFloat(amtEl.value)||0;
+    const status = paid>=s.fee ? 'paid' : paid>0 ? 'partial' : 'unpaid';
+    const advSel = document.getElementById('adv-'+s.id);
+    const advanceMonth = advSel ? advSel.value : '';
+    if (!fees[s.id]) fees[s.id] = {};
+
+    // Save current month fee
+    fees[s.id][mIdx] = {
+      paid, amount:s.fee, status,
+      advanceMonth,
+      receipt: (document.getElementById('rcpt-'+s.id)||{}).value||'',
+      date: (document.getElementById('date-'+s.id)||{}).value||'',
+      note: (document.getElementById('note-'+s.id)||{}).value||''
+    };
+
+    // If advance month selected → auto mark that month as Advance Paid
+    if (advanceMonth !== '' && advanceMonth !== undefined) {
+      const advMIdx = parseInt(advanceMonth);
+      if (!fees[s.id][advMIdx]) fees[s.id][advMIdx] = {};
+      fees[s.id][advMIdx] = {
+        paid: s.fee,
+        amount: s.fee,
+        status: 'paid',
+        advanceFrom: mIdx,
+        advanceFromName: MONTHS[mIdx],
+        receipt: (document.getElementById('rcpt-'+s.id)||{}).value||'',
+        date: (document.getElementById('date-'+s.id)||{}).value||'',
+        note: 'Advance paid with ' + MONTHS[mIdx]
+      };
+    }
+  });
+  save('busFees', fees); toast('Fees saved! Advance month marked ✅'); renderFeeEntry();
+}
+
+// REPORTS
+function buildRepMonthPicker() {
+  document.getElementById('repMonthPicker').innerHTML = MONTHS.map((m,i) =>
+    `<div class="rm-chip ${i===selectedRepMonth?'active':''}" onclick="selectRepMonth(${i})"
+      style="${i===12?'border-color:#f5a623;color:'+(i===selectedRepMonth?'#fff':'#b57c00')+';background:'+(i===selectedRepMonth?'#d4861a':'#fff8e8')+';':''}">${i===12?'⭐ ':''
+    }${m}</div>`).join('');
+}
+function selectRepMonth(i) { selectedRepMonth=i; buildRepMonthPicker(); renderReport(); }
+function renderReport() {
+  const m = selectedRepMonth;
+  const q = (document.getElementById('repSearch').value||'').toLowerCase();
+  const routeSummary = {};
+  routes.forEach(r => { routeSummary[r.id] = {name:r.name, students:0, due:0, paid:0}; });
+  const list = students.filter(s => s.name.toLowerCase().includes(q));
+  let totDue=0, totPaid=0, totPaidCount=0;
+  list.forEach(s => {
+    const f = (fees[s.id]&&fees[s.id][m])||{paid:0,status:'unpaid'};
+    totDue+=s.fee; totPaid+=Number(f.paid||0);
+    if (f.status==='paid') totPaidCount++;
+    if (routeSummary[s.routeId]) { routeSummary[s.routeId].students++; routeSummary[s.routeId].due+=s.fee; routeSummary[s.routeId].paid+=Number(f.paid||0); }
+  });
+  document.getElementById('repStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num" style="color:var(--navy)">${list.length}</div><div class="stat-label">Students</div></div>
+    <div class="stat-card"><div class="stat-num text-green">${totPaidCount}</div><div class="stat-label">Paid</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--bus)">${fmt(totPaid)}</div><div class="stat-label">Collected</div></div>
+    <div class="stat-card"><div class="stat-num text-red">${fmt(totDue-totPaid)}</div><div class="stat-label">Pending</div></div>`;
+  document.getElementById('repRouteBody').innerHTML = Object.values(routeSummary).filter(r=>r.students>0).map(r => {
+    const pct = r.due ? Math.round(r.paid/r.due*100) : 0;
+    return `<tr><td><span class="route-tag">${r.name}</span></td><td>${r.students}</td><td class="mono">${fmt(r.due)}</td><td class="mono text-green">${fmt(r.paid)}</td><td class="mono text-red">${fmt(r.due-r.paid)}</td>
+    <td><div style="background:#eee;border-radius:6px;height:8px;width:80px;overflow:hidden;display:inline-block;"><div style="background:var(--green);height:100%;width:${pct}%;border-radius:6px;"></div></div> <span class="text-muted">${pct}%</span></td></tr>`;
+  }).join('') || '<tr><td colspan="6" class="text-muted" style="text-align:center;padding:16px;">No data</td></tr>';
+  document.getElementById('repEmpty').style.display = list.length ? 'none' : 'block';
+  document.getElementById('repTable').innerHTML = list.map((s,i) => {
+    let tp=0, td=0;
+    const cells = MONTHS_SHORT.slice(0,12).map((_,mi) => {
+      const f=(fees[s.id]&&fees[s.id][mi])||{};
+      td+=s.fee; const p=Number(f.paid||0); tp+=p;
+      if (!f.status||f.status==='unpaid') return `<td><span class="badge badge-unpaid">—</span></td>`;
+      if (f.advanceFrom !== undefined) return `<td><span class="badge" style="background:#e8f0fe;color:#1a56c9;" title="Advance paid with ${f.advanceFromName||''}">ADV</span></td>`;
+      if (f.status==='paid') return `<td><span class="badge badge-paid">✓</span></td>`;
+      return `<td><span class="badge badge-partial">${fmt(p)}</span></td>`;
+    }).join('');
+    // Advance column (index 12)
+    const fa = (fees[s.id]&&fees[s.id][12])||{};
+    const advPaid = Number(fa.paid||0); tp += advPaid;
+    const advCell = fa.status==='paid'
+      ? `<td><span class="badge" style="background:#fff3cd;color:#856404;">⭐ ${fmt(advPaid)}</span></td>`
+      : `<td><span class="badge badge-unpaid">—</span></td>`;
+    const bal = td-tp;
+    return `<tr><td class="text-muted">${i+1}</td><td><b>${s.name}</b></td><td>${s.cls}</td><td><span class="route-tag">${getRoute(s.routeId)}</span></td>${cells}${advCell}<td class="mono text-green">${fmt(tp)}</td><td class="mono">${fmt(td)}</td><td class="mono ${bal>0?'text-red':'text-green'}">${fmt(bal)}</td></tr>`;
+  }).join('');
+}
+function exportReport() {
+  let csv = `Bus Fee Report - ${MONTHS[selectedRepMonth]}\nSchool: ${setup.school}\n\nName,Class,Route,${MONTHS_SHORT.join(',')},Total Paid,Total Due,Balance\n`;
+  students.forEach(s => {
+    let tp=0, td=0;
+    const cells = MONTHS_SHORT.map((_,mi) => { const f=(fees[s.id]&&fees[s.id][mi])||{}; td+=s.fee; const p=Number(f.paid||0); tp+=p; return f.status==='paid'?'Paid':f.status==='partial'?`Partial(${p})`:'Unpaid'; });
+    csv += `"${s.name}","${s.cls}","${getRoute(s.routeId)}",${cells.join(',')},${tp},${td},${td-tp}\n`;
+  });
+  downloadCSV(csv, `bus_fees_${MONTHS[selectedRepMonth]}.csv`);
+}
+function downloadCSV(csv, name) { const a = document.createElement('a'); a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv); a.download = name; a.click(); }
+
+// SYNC
+function initSyncTab() {
+  document.getElementById('jbKey').value = cloudCfg.key || '';
+  document.getElementById('jbBin').value = cloudCfg.bin || '';
+  if (cloudCfg.key && cloudCfg.bin) {
+    document.getElementById('syncStep2').style.display = 'block';
+    document.getElementById('syncStep3').style.display = 'block';
+    generateShareLink();
+  }
+}
+async function saveCloudConfig() {
+  const key = document.getElementById('jbKey').value.trim();
+  const bin = document.getElementById('jbBin').value.trim();
+  const st = document.getElementById('connStatus');
+  if (!key || !bin) { st.innerHTML = '<span style="color:var(--red)">⚠️ Enter both Key and Bin ID</span>'; return; }
+  st.innerHTML = '⏳ Testing...';
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${bin}/latest`, { headers: { 'X-Master-Key': key } });
+    if (res.ok || res.status === 200) {
+      const data = await res.json();
+      if (!data.record || !data.record.submissions) {
+        await fetch(`https://api.jsonbin.io/v3/b/${bin}`, { method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':key}, body:JSON.stringify({submissions:[]}) });
+      }
+      cloudCfg = { key, bin }; save('busCloud', cloudCfg);
+      st.innerHTML = '<span style="color:var(--green)">✅ Connected!</span>';
+      document.getElementById('syncStep2').style.display = 'block';
+      document.getElementById('syncStep3').style.display = 'block';
+      generateShareLink(); toast('Cloud connected!');
+    } else { throw new Error('Status: ' + res.status); }
+  } catch(e) { st.innerHTML = `<span style="color:var(--red)">❌ Failed: ${e.message}</span>`; }
+}
+async function generateShareLink() {
+  // Build full URL
+  const thisUrl = window.location.href.split('?')[0];
+  const params = new URLSearchParams({
+    form: '1',
+    bin: cloudCfg.bin,
+    key: cloudCfg.key,
+    school: setup.school || '',
+    year: setup.year || '2026-27',
+    routes: JSON.stringify(routes.map(r => ({ id:r.id, name:r.name, fee:r.fee })))
+  });
+  const formUrl = thisUrl + '?' + params.toString();
+  document.getElementById('shareLink').value = formUrl;
+
+  // Store config inside JSONBin so QR only needs bin+key
+  // Short QR URL = thisUrl?form=1&bin=BINID&key=KEY (no routes in URL)
+  try {
+    // Save routes/config into bin meta so form can read it
+    const readRes = await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}/latest`, { headers:{'X-Master-Key':cloudCfg.key} });
+    const readData = await readRes.json();
+    const record = readData.record || { submissions: [] };
+    record._config = {
+      school: setup.school || '',
+      year: setup.year || '2026-27',
+      routes: routes.map(r => ({ id:r.id, name:r.name, fee:r.fee }))
+    };
+    await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}`, {
+      method:'PUT',
+      headers:{'Content-Type':'application/json','X-Master-Key':cloudCfg.key},
+      body:JSON.stringify(record)
+    });
+  } catch(e) { console.log('Config save error:', e); }
+
+  // Short QR URL — only bin and key, no long routes string
+  const shortParams = new URLSearchParams({
+    form: '1',
+    bin: cloudCfg.bin,
+    key: cloudCfg.key
+  });
+  const shortUrl = thisUrl + '?' + shortParams.toString();
+
+  // Generate QR with short URL — much more scannable!
+  const encoded = encodeURIComponent(shortUrl);
+  const qrDiv = document.getElementById('qrCode');
+  qrDiv.innerHTML = `<img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&margin=10&data=${encoded}"
+    style="width:200px;height:200px;border-radius:8px;display:block;" alt="QR Code">`;
+  window._shortFormUrl = shortUrl;
+}
+function copyLink() {
+  const link = document.getElementById('shareLink').value;
+  navigator.clipboard.writeText(link).then(() => toast('Link copied!')).catch(() => { document.getElementById('shareLink').select(); document.execCommand('copy'); toast('Link copied!'); });
+}
+function printQR() {
+  const qr = document.getElementById('qrCode').innerHTML;
+  const w = window.open('','_blank');
+  w.document.write(`<html><body style="text-align:center;font-family:sans-serif;padding:40px;"><h2>🚌 ${setup.school||'School'} — Bus Registration</h2><p style="color:#888;margin-bottom:20px;">Scan to register your child for school bus transport</p>${qr}<p style="margin-top:16px;font-size:0.85rem;color:#555;">${setup.year||'2026-27'}</p></body></html>`);
+  w.document.close(); w.print();
+}
+async function fetchSubmissions() {
+  const st = document.getElementById('fetchStatus');
+  st.innerHTML = '⏳ Fetching...';
+  try {
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}/latest`, { headers:{'X-Master-Key':cloudCfg.key} });
+    const data = await res.json();
+    const subs = (data.record||{}).submissions||[];
+    const pending = subs.filter(s => s.status==='pending');
+    st.innerHTML = `<span style="color:var(--green)">✅ ${pending.length} new submission(s)</span>`;
+    renderPending(pending, data.record);
+  } catch(e) { st.innerHTML = `<span style="color:var(--red)">❌ Error: ${e.message}</span>`; }
+}
+function renderPending(pending, fullRecord) {
+  window._cloudRecord = fullRecord; window._pendingSubs = pending;
+  const el = document.getElementById('pendingList');
+  if (!pending.length) { el.innerHTML = '<div class="empty-state" style="padding:20px;"><div class="es-icon">📭</div><p>No new submissions yet.</p></div>'; return; }
+  el.innerHTML = `<div style="margin-bottom:12px;font-weight:800;color:var(--navy);">Pending Approvals (${pending.length})</div>
+  <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Class</th><th>Route</th><th>Trip</th><th>Joining Month</th><th>Parent</th><th>Phone</th><th>Submitted</th><th>Action</th></tr></thead>
+  <tbody>${pending.map(s => `<tr><td><b>${s.name}</b></td><td>${s.cls}</td><td><span class="route-tag">${s.routeName||s.routeId}</span></td><td>${s.trip||'—'}</td><td>${s.joinMonthName||'—'}</td><td>${s.parent}</td><td>${s.phone}</td>
+  <td class="text-muted">${new Date(s.submittedAt).toLocaleDateString('en-IN')}</td>
+  <td><div class="flex-gap"><button class="btn btn-green btn-sm" onclick="approveStudent('${s.id}')">✅ Approve</button><button class="btn btn-red btn-sm" onclick="rejectStudent('${s.id}')">🗑️ Reject</button></div></td></tr>`).join('')}
+  </tbody></table></div>
+  <div class="flex-gap" style="margin-top:12px;"><button class="btn btn-green" onclick="approveAll()">✅ Approve All</button></div>`;
+}
+async function approveStudent(subId) {
+  const sub = window._pendingSubs.find(s => s.id===subId); if (!sub) return;
+  if (!students.find(s => s.name===sub.name && s.phone===sub.phone)) {
+    students.push({ id:sub.id, name:sub.name, cls:sub.cls, roll:sub.roll||'', routeId:sub.routeId, fee:sub.fee, adm:sub.adm||'', parent:sub.parent, phone:sub.phone, address:sub.address||'', joinMonth:sub.joinMonth||0 });
+    save('busStudents', students);
+  }
+  window._cloudRecord.submissions = window._cloudRecord.submissions.map(s => s.id===subId ? {...s,status:'approved'} : s);
+  await pushCloudRecord(window._cloudRecord);
+  window._pendingSubs = window._pendingSubs.filter(s => s.id!==subId);
+  renderPending(window._pendingSubs, window._cloudRecord);
+  toast(`${sub.name} approved & added!`);
+}
+async function rejectStudent(subId) {
+  if (!confirm('Reject this submission?')) return;
+  window._cloudRecord.submissions = window._cloudRecord.submissions.map(s => s.id===subId ? {...s,status:'rejected'} : s);
+  await pushCloudRecord(window._cloudRecord);
+  window._pendingSubs = window._pendingSubs.filter(s => s.id!==subId);
+  renderPending(window._pendingSubs, window._cloudRecord);
+  toast('Rejected');
+}
+async function approveAll() { for (const sub of [...window._pendingSubs]) { await approveStudent(sub.id); } }
+async function pushCloudRecord(record) {
+  await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}`, { method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':cloudCfg.key}, body:JSON.stringify(record) });
+}
+
+// ═══════════════════ QUICK FEE ENTRY ═══════════════════
+let recentEntries = [];
+
+function quickLookup() {
+  const sl = parseInt(document.getElementById('qSlNo').value);
+  const infoBox = document.getElementById('qStudentInfo');
+  const form = document.getElementById('qEntryForm');
+  if (!sl || sl < 1) {
+    infoBox.innerHTML = '<span style="color:var(--muted);font-weight:700;">← Enter SL No to find student</span>';
+    form.style.display = 'none'; return;
+  }
+  const s = students[sl - 1];
+  if (!s) {
+    infoBox.innerHTML = `<span style="color:var(--red);font-weight:800;">⚠️ SL No ${sl} — Student not found</span>`;
+    form.style.display = 'none'; return;
+  }
+  infoBox.innerHTML = `
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;width:100%;">
+      <div>
+        <div style="font-size:1.15rem;font-weight:900;color:var(--navy);">${s.name}</div>
+        <div style="font-size:0.85rem;color:var(--muted);font-weight:700;margin-top:2px;">
+          Class: <b>${s.cls}</b> &nbsp;|&nbsp; Route: <b>${getRoute(s.routeId)||'—'}</b> &nbsp;|&nbsp; Parent: <b>${s.parent}</b> &nbsp;|&nbsp; Fee: <b>${fmt(s.fee)}/month</b>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById('qAmt').value = s.fee;
+  document.getElementById('qDate').value = new Date().toISOString().split('T')[0];
+  const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
+  document.getElementById('qMonth').value = acIdx;
+  form.style.display = 'block';
+}
+
+function quickSaveFee() {
+  const sl = parseInt(document.getElementById('qSlNo').value);
+  const s = students[sl - 1];
+  if (!s) { toast('Student not found!', false); return; }
+  const mIdx = parseInt(document.getElementById('qMonth').value);
+  const paid = parseFloat(document.getElementById('qAmt').value) || 0;
+  const rcpt = document.getElementById('qRcpt').value.trim();
+  const date = document.getElementById('qDate').value;
+  const note = document.getElementById('qNote').value.trim();
+  if (!paid) { toast('Enter paid amount!', false); return; }
+  if (!rcpt) { toast('Enter receipt number!', false); return; }
+  const status = paid >= s.fee ? 'paid' : paid > 0 ? 'partial' : 'unpaid';
+  if (!fees[s.id]) fees[s.id] = {};
+  fees[s.id][mIdx] = { paid, amount: s.fee, status, receipt: rcpt, date, note };
+  save('busFees', fees);
+  recentEntries.unshift({ sl, name: s.name, cls: s.cls, month: MONTHS[mIdx], paid, receipt: rcpt, date, status });
+  renderRecentEntries();
+  toast(`✅ ${s.name} — ${MONTHS[mIdx]} saved! Receipt: ${rcpt}`);
+  // Auto-increment to next student
+  document.getElementById('qSlNo').value = sl + 1;
+  document.getElementById('qRcpt').value = '';
+  document.getElementById('qNote').value = '';
+  quickLookup();
+  renderFeeEntry();
+}
+
+function renderRecentEntries() {
+  const card = document.getElementById('recentEntriesCard');
+  if (!recentEntries.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  document.getElementById('recentTable').innerHTML = recentEntries.map(e => `
+    <tr>
+      <td class="text-muted">${e.sl}</td>
+      <td><b>${e.name}</b></td>
+      <td>${e.cls}</td>
+      <td><span class="badge" style="background:#e8f0fe;color:#1a56c9;">${e.month}</span></td>
+      <td class="mono text-green">${fmt(e.paid)}</td>
+      <td class="mono" style="color:var(--bus);font-weight:800;">${e.receipt}</td>
+      <td class="text-muted">${e.date}</td>
+      <td>${e.status==='paid'?'<span class="badge badge-paid">Paid</span>':e.status==='partial'?'<span class="badge badge-partial">Partial</span>':'<span class="badge badge-unpaid">Unpaid</span>'}</td>
+    </tr>`).join('');
+}
+
+function quickClear() {
+  document.getElementById('qSlNo').value = '';
+  document.getElementById('qAmt').value = '';
+  document.getElementById('qRcpt').value = '';
+  document.getElementById('qNote').value = '';
+  document.getElementById('qStudentInfo').innerHTML = '<span style="color:var(--muted);font-weight:700;">← Enter SL No to find student</span>';
+  document.getElementById('qEntryForm').style.display = 'none';
+}
+
+// INIT PORTAL
+if (!IS_FORM) {
+  loadSetup(); renderStudents();
+  const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
+  document.getElementById('feeMonth').value = acIdx;
+  selectedRepMonth = acIdx;
+}
+
+// ══════════════════════════════════════════
+// PARENT FORM LOGIC
+// ══════════════════════════════════════════
+async function initParentForm() {
+  const BIN_ID = urlParams.get('bin') || '';
+  const API_KEY = urlParams.get('key') || '';
+  let SCHOOL = urlParams.get('school') || '';
+  let YEAR = urlParams.get('year') || '2026-27';
+  let ROUTES = [];
+
+  try {
+    const rp = urlParams.get('routes');
+    if (rp) {
+      ROUTES = JSON.parse(decodeURIComponent(rp));
+    }
+  } catch {}
+
+  // If routes not in URL (short QR link), fetch from JSONBin _config
+  if ((!ROUTES || !ROUTES.length) && BIN_ID && API_KEY) {
+    try {
+      document.getElementById('hSchool').textContent = '⏳ Loading...';
+      const res = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers:{'X-Master-Key':API_KEY} });
+      const data = await res.json();
+      const cfg = (data.record || {})._config || {};
+      ROUTES = cfg.routes || [];
+      SCHOOL = cfg.school || SCHOOL;
+      YEAR = cfg.year || YEAR;
+    } catch(e) {
+      console.log('Config fetch error:', e);
+    }
+  }
+
+  document.getElementById('hSchool').textContent = SCHOOL || 'School Bus Registration';
+  document.getElementById('hYear').textContent = `Academic Year ${YEAR} • Bus Transport`;
+
+  const sel = document.getElementById('fRoute');
+  sel.innerHTML = '<option value="">-- Select Route --</option>' +
+    ROUTES.map(r => `<option value="${r.id}">${r.name} — ₹${Number(r.fee).toLocaleString('en-IN')}/month</option>`).join('');
+
+  window._formConfig = { BIN_ID, API_KEY, ROUTES };
+}
+
+async function submitForm() {
+  const { BIN_ID, API_KEY, ROUTES } = window._formConfig || {};
+  const name   = document.getElementById('fName').value.trim();
+  const cls    = document.getElementById('fClass').value;
+  const parent = document.getElementById('fParent').value.trim();
+  const phone  = document.getElementById('fPhone').value.trim();
+  const route  = document.getElementById('fRoute').value;
+  const trip   = document.getElementById('fTrip').value;
+  const join   = document.getElementById('fJoin').value;
+  const err    = document.getElementById('errMsg');
+
+  if (!name || !cls || !parent || !phone || !trip || join === '') {
+    err.style.display = 'block';
+    err.textContent = '⚠️ Please fill all required fields.';
+    return;
+  }
+  err.style.display = 'none';
+
+  const rObj = ROUTES.find(r => r.id === route);
+  const MONTHS = ['June','July','August','September','October','November','December','January','February','March','April','May'];
+  const student = {
+    id: Date.now().toString(36) + Math.random().toString(36).slice(2),
+    name, cls, parent, phone,
+    routeId: route,
+    routeName: rObj ? rObj.name : route,
+    fee: rObj ? rObj.fee : 0,
+    trip,
+    joinMonth: parseInt(join),
+    joinMonthName: MONTHS[parseInt(join)],
+    submittedAt: new Date().toISOString(),
+    status: 'pending'
+  };
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span> Submitting...';
+
+  try {
+    const readRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}/latest`, { headers: { 'X-Master-Key': API_KEY } });
+    const readData = await readRes.json();
+    const existing = readData.record || { submissions: [] };
+    existing.submissions = existing.submissions || [];
+    existing.submissions.push(student);
+    const writeRes = await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': API_KEY },
+      body: JSON.stringify(existing)
+    });
+    if (writeRes.ok) {
+      document.getElementById('mainForm').style.display = 'none';
+      document.getElementById('successScreen').style.display = 'block';
+    } else { throw new Error('Write failed'); }
+  } catch(e) {
+    btn.disabled = false;
+    btn.innerHTML = '✅ Submit Registration';
+    err.style.display = 'block';
+    err.textContent = '❌ Submission failed. Please check your internet connection and try again.';
+  }
+}
+function resetForm() {
+  ['fName','fParent','fPhone'].forEach(id => { document.getElementById(id).value = ''; });
+  document.getElementById('fClass').value = '';
+  document.getElementById('fRoute').value = '';
+  document.getElementById('fTrip').value = '';
+  document.getElementById('fJoin').value = '';
+  document.getElementById('submitBtn').disabled = false;
+  document.getElementById('submitBtn').innerHTML = '✅ Submit Registration';
+  document.getElementById('successScreen').style.display = 'none';
+  document.getElementById('mainForm').style.display = 'block';
+}
+</script>
+</body>
+</html>
