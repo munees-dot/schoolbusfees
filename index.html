@@ -167,6 +167,7 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
     </div>
   </div>
   <div class="topbar-school" id="topSchoolName">—</div>
+  <button onclick="syncNow()" style="background:var(--bus);border:none;color:#fff;padding:7px 16px;border-radius:8px;font-family:'Nunito',sans-serif;font-weight:800;font-size:0.85rem;cursor:pointer;">🔄 Sync</button>
 </div>
 
 <div class="tabs">
@@ -422,9 +423,10 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
       <div class="info-box">📱 രക്ഷിതാക്കൾക്ക് ഈ Link WhatsApp-ൽ അയക്കുക — അവർ Phone-ൽ Form പൂരിപ്പിക്കും!</div>
       <div class="gform-field" style="margin-bottom:14px;">
         <label class="gform-label">📋 Share ചെയ്യാനുള്ള Link (Copy ചെയ്ത് WhatsApp-ൽ അയക്കുക)</label>
-        <div style="display:flex;gap:8px;">
-          <input class="gform-input" id="shareLink" readonly style="font-size:0.82rem;font-family:monospace;">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input class="gform-input" id="shareLink" readonly style="font-size:0.82rem;font-family:monospace;flex:1;">
           <button class="btn btn-primary" onclick="copyLink()">📋 Copy</button>
+          <button class="btn btn-green" onclick="shareWhatsApp()">💬 WhatsApp</button>
         </div>
       </div>
       <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:flex-start;margin-top:16px;">
@@ -563,7 +565,12 @@ const IS_FORM = urlParams.get('form') === '1';
 if (IS_FORM) {
   document.getElementById('portalView').style.display = 'none';
   document.getElementById('formView').style.display = 'block';
-  initParentForm();
+  // Show loading while fetching config
+  document.getElementById('hSchool').textContent = '⏳ Loading...';
+  initParentForm().catch(e => {
+    console.log('Form init error:', e);
+    document.getElementById('hSchool').textContent = 'School Bus Registration';
+  });
 }
 
 // ══════════════════════════════════════════
@@ -572,8 +579,75 @@ if (IS_FORM) {
 const MONTHS = ['June','July','August','September','October','November','December','January','February','March','April','May','Advance'];
 const MONTHS_SHORT = ['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Adv'];
 
+// ═══ CLOUD CONFIG (Embedded) ═══
+const CLOUD_BIN = '6a20f446f5f4af5e29b5dc1f';
+const CLOUD_KEY = '$2a$10$yctI3bcWmNKQ41PYLrjwwu4ILu0Za.gMtU6cfVL038x.4If53Sc8S';
+
+// ═══ LOCAL CACHE (for speed) ═══
 function load(k, def) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : def; } catch { return def; } }
 function save(k, v) { localStorage.setItem(k, JSON.stringify(v)); }
+
+// ═══ CLOUD SYNC ═══
+const API_BASE = 'https://api.jsonbin.io/v3/b';
+
+async function cloudLoad() {
+  try {
+    const res = await fetch(`${API_BASE}/${CLOUD_BIN}/latest`, {
+      method: 'GET',
+      headers: {
+        'X-Master-Key': CLOUD_KEY,
+        'X-Bin-Meta': 'false'
+      }
+    });
+    if (!res.ok) throw new Error('Status: ' + res.status);
+    const data = await res.json();
+    const record = data.record || data || {};
+    if (record.setup)    { setup    = record.setup;    save('busSetup', setup); }
+    if (record.routes)   { routes   = record.routes;   save('busRoutes', routes); }
+    if (record.students) { students = record.students; save('busStudents', students); }
+    if (record.fees)     { fees     = record.fees;     save('busFees', fees); }
+    return record;
+  } catch(e) {
+    console.log('Cloud load error:', e);
+    // Fallback to localStorage
+    return null;
+  }
+}
+
+async function cloudSave() {
+  try {
+    // Get current record to preserve submissions
+    const getRes = await fetch(`${API_BASE}/${CLOUD_BIN}/latest`, {
+      method: 'GET',
+      headers: { 'X-Master-Key': CLOUD_KEY, 'X-Bin-Meta': 'false' }
+    });
+    const getData = await getRes.json();
+    const existing = getData.record || getData || {};
+
+    // Merge — preserve submissions, update rest
+    const newRecord = {
+      submissions: existing.submissions || [],
+      _config: { school: setup.school, year: setup.year, routes },
+      setup,
+      routes,
+      students,
+      fees
+    };
+
+    const putRes = await fetch(`${API_BASE}/${CLOUD_BIN}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Master-Key': CLOUD_KEY
+      },
+      body: JSON.stringify(newRecord)
+    });
+    return putRes.ok;
+  } catch(e) {
+    console.log('Cloud save error:', e);
+    return false;
+  }
+}
 function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
 function fmt(n) { return '₹' + Number(n||0).toLocaleString('en-IN'); }
 function toast(msg, ok=true) {
@@ -587,7 +661,7 @@ let setup = load('busSetup', { school: '', year: '', phone: '', address: '' });
 let routes = load('busRoutes', []);
 let students = load('busStudents', []);
 let fees = load('busFees', {});
-let cloudCfg = load('busCloud', { key: '', bin: '' });
+let cloudCfg = { key: CLOUD_KEY, bin: CLOUD_BIN };
 let editStuId = null;
 let selectedRepMonth = 0;
 
@@ -611,14 +685,15 @@ function loadSetup() {
   document.getElementById('topSchoolName').textContent = setup.school || 'School Name';
   renderRoutes();
 }
-function saveSetup() {
+async function saveSetup() {
   setup.school = document.getElementById('setupSchool').value.trim();
   setup.year = document.getElementById('setupYear').value.trim();
   setup.phone = document.getElementById('setupPhone').value.trim();
   setup.address = document.getElementById('setupAddress').value.trim();
   save('busSetup', setup);
   document.getElementById('topSchoolName').textContent = setup.school || 'School Name';
-  toast('School info saved!');
+  const ok = await cloudSave();
+  toast(ok ? '✅ Saved & Synced to Cloud!' : '⚠️ Saved locally only', ok);
 }
 function renderRoutes() {
   const el = document.getElementById('routesList');
@@ -627,7 +702,7 @@ function renderRoutes() {
     <span class="route-tag">${r.name}</span><span class="mono">${fmt(r.fee)}/month</span>
     <button class="btn btn-red btn-sm ml-auto" onclick="deleteRoute(${i})">🗑️</button></div>`).join('');
 }
-function addRoute() {
+async function addRoute() {
   const name = document.getElementById('routeName').value.trim();
   const fee = parseFloat(document.getElementById('routeFee').value) || 0;
   if (!name) { toast('Enter route name', false); return; }
@@ -635,11 +710,11 @@ function addRoute() {
   save('busRoutes', routes);
   document.getElementById('routeName').value = '';
   document.getElementById('routeFee').value = '';
-  renderRoutes(); toast('Route added!');
+  renderRoutes(); const ok1 = await cloudSave(); toast(ok1 ? '✅ Route Synced!' : 'Route added locally');;
 }
-function deleteRoute(i) {
+async function deleteRoute(i) {
   if (!confirm('Delete this route?')) return;
-  routes.splice(i, 1); save('busRoutes', routes); renderRoutes(); toast('Route deleted');
+  routes.splice(i, 1); save('busRoutes', routes); renderRoutes(); await cloudSave(); toast('Route deleted');
 }
 
 // STUDENTS
@@ -661,7 +736,7 @@ function populateRouteSelect(id) {
   sel.innerHTML = '<option value="">-- Select Route --</option>' + routes.map(r => `<option value="${r.id}">${r.name} (${fmt(r.fee)})</option>`).join('');
   sel.onchange = function() { const r = routes.find(x => x.id === this.value); if (r) document.getElementById('sFee').value = r.fee; };
 }
-function saveStudent() {
+async function saveStudent() {
   const name = document.getElementById('sFname').value.trim();
   const cls = document.getElementById('sClass').value.trim();
   const routeId = document.getElementById('sRoute').value;
@@ -672,7 +747,7 @@ function saveStudent() {
   const stu = { id: editStuId || uid(), name, cls, roll: document.getElementById('sRoll').value.trim(), routeId, fee, adm: document.getElementById('sAdm').value.trim(), parent, phone, address: document.getElementById('sAddr').value.trim(), joinMonth: parseInt(document.getElementById('sJoin').value) };
   if (editStuId) { const idx = students.findIndex(s => s.id === editStuId); students[idx] = stu; toast('Student updated!'); }
   else { students.push(stu); toast('Student added!'); }
-  save('busStudents', students); cancelStuForm(); renderStudents();
+  save('busStudents', students); cancelStuForm(); renderStudents(); await cloudSave();
 }
 function editStudent(id) {
   editStuId = id; const s = students.find(x => x.id === id);
@@ -686,10 +761,10 @@ function editStudent(id) {
   document.getElementById('addStuForm').style.display = 'block';
   document.getElementById('addStuForm').scrollIntoView({ behavior: 'smooth' });
 }
-function deleteStudent(id) {
+async function deleteStudent(id) {
   if (!confirm('Delete this student?')) return;
   students = students.filter(s => s.id !== id); delete fees[id];
-  save('busStudents', students); save('busFees', fees); renderStudents(); toast('Student deleted');
+  save('busStudents', students); save('busFees', fees); renderStudents(); await cloudSave(); toast('Student deleted');
 }
 function getRoute(id) { const r = routes.find(x => x.id === id); return r ? r.name : '—'; }
 function renderStudents() {
@@ -768,7 +843,7 @@ function markAllPaid() {
   const mIdx = parseInt(document.getElementById('feeMonth').value);
   students.forEach(s => { const el = document.getElementById('amt-'+s.id); if (el) { el.value = s.fee; updateFeeStatus(s.id, mIdx, s.fee); } });
 }
-function saveFees() {
+async function saveFees() {
   const mIdx = parseInt(document.getElementById('feeMonth').value);
   students.forEach(s => {
     const amtEl = document.getElementById('amt-'+s.id); if (!amtEl) return;
@@ -803,7 +878,7 @@ function saveFees() {
       };
     }
   });
-  save('busFees', fees); toast('Fees saved! Advance month marked ✅'); renderFeeEntry();
+  save('busFees', fees); const fok = await cloudSave(); toast(fok ? '✅ Fees Saved & Synced!' : 'Fees saved locally'); renderFeeEntry();
 }
 
 // REPORTS
@@ -918,7 +993,7 @@ async function generateShareLink() {
   // Short QR URL = thisUrl?form=1&bin=BINID&key=KEY (no routes in URL)
   try {
     // Save routes/config into bin meta so form can read it
-    const readRes = await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}/latest`, { headers:{'X-Master-Key':cloudCfg.key} });
+    const readRes = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN}/latest`, { headers:{'X-Master-Key':cloudCfg.key} });
     const readData = await readRes.json();
     const record = readData.record || { submissions: [] };
     record._config = {
@@ -926,7 +1001,7 @@ async function generateShareLink() {
       year: setup.year || '2026-27',
       routes: routes.map(r => ({ id:r.id, name:r.name, fee:r.fee }))
     };
-    await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}`, {
+    await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN}`, {
       method:'PUT',
       headers:{'Content-Type':'application/json','X-Master-Key':cloudCfg.key},
       body:JSON.stringify(record)
@@ -952,6 +1027,11 @@ function copyLink() {
   const link = document.getElementById('shareLink').value;
   navigator.clipboard.writeText(link).then(() => toast('Link copied!')).catch(() => { document.getElementById('shareLink').select(); document.execCommand('copy'); toast('Link copied!'); });
 }
+function shareWhatsApp() {
+  const link = document.getElementById('shareLink').value;
+  const msg = `🚌 *${setup.school || 'School'} Bus Registration*\n\nDear Parent,\nPlease register your child for school bus transport by clicking the link below:\n\n${link}\n\nThank you!`;
+  window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank');
+}
 function printQR() {
   const qr = document.getElementById('qrCode').innerHTML;
   const w = window.open('','_blank');
@@ -962,7 +1042,7 @@ async function fetchSubmissions() {
   const st = document.getElementById('fetchStatus');
   st.innerHTML = '⏳ Fetching...';
   try {
-    const res = await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}/latest`, { headers:{'X-Master-Key':cloudCfg.key} });
+    const res = await fetch(`https://api.jsonbin.io/v3/b/${CLOUD_BIN}/latest`, { headers:{'X-Master-Key':cloudCfg.key} });
     const data = await res.json();
     const subs = (data.record||{}).submissions||[];
     const pending = subs.filter(s => s.status==='pending');
@@ -984,15 +1064,30 @@ function renderPending(pending, fullRecord) {
 }
 async function approveStudent(subId) {
   const sub = window._pendingSubs.find(s => s.id===subId); if (!sub) return;
-  if (!students.find(s => s.name===sub.name && s.phone===sub.phone)) {
-    students.push({ id:sub.id, name:sub.name, cls:sub.cls, roll:sub.roll||'', routeId:sub.routeId, fee:sub.fee, adm:sub.adm||'', parent:sub.parent, phone:sub.phone, address:sub.address||'', joinMonth:sub.joinMonth||0 });
+  const exists = students.find(s => s.name===sub.name && s.phone===sub.phone);
+  if (!exists) {
+    students.push({
+      id: sub.id,
+      name: sub.name,
+      cls: sub.cls,
+      roll: sub.roll||'',
+      routeId: sub.routeId||'',
+      fee: sub.fee||0,
+      adm: sub.adm||'',
+      parent: sub.parent,
+      phone: sub.phone,
+      address: sub.address||'',
+      joinMonth: sub.joinMonth||0,
+      trip: sub.trip||''
+    });
     save('busStudents', students);
+    renderStudents(); // ← Students Tab Refresh
   }
   window._cloudRecord.submissions = window._cloudRecord.submissions.map(s => s.id===subId ? {...s,status:'approved'} : s);
   await pushCloudRecord(window._cloudRecord);
   window._pendingSubs = window._pendingSubs.filter(s => s.id!==subId);
   renderPending(window._pendingSubs, window._cloudRecord);
-  toast(`${sub.name} approved & added!`);
+  toast(`✅ ${sub.name} Students Tab-ൽ Add ആയി!`);
 }
 async function rejectStudent(subId) {
   if (!confirm('Reject this submission?')) return;
@@ -1004,7 +1099,13 @@ async function rejectStudent(subId) {
 }
 async function approveAll() { for (const sub of [...window._pendingSubs]) { await approveStudent(sub.id); } }
 async function pushCloudRecord(record) {
-  await fetch(`https://api.jsonbin.io/v3/b/${cloudCfg.bin}`, { method:'PUT', headers:{'Content-Type':'application/json','X-Master-Key':cloudCfg.key}, body:JSON.stringify(record) });
+  try {
+    await fetch(`${API_BASE}/${CLOUD_BIN}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'X-Master-Key': CLOUD_KEY },
+      body: JSON.stringify(record)
+    });
+  } catch(e) { console.log('Push error:', e); }
 }
 
 // ═══════════════════ QUICK FEE ENTRY ═══════════════════
@@ -1039,7 +1140,7 @@ function quickLookup() {
   form.style.display = 'block';
 }
 
-function quickSaveFee() {
+async function quickSaveFee() {
   const sl = parseInt(document.getElementById('qSlNo').value);
   const s = students[sl - 1];
   if (!s) { toast('Student not found!', false); return; }
@@ -1054,7 +1155,7 @@ function quickSaveFee() {
   if (!fees[s.id]) fees[s.id] = {};
   fees[s.id][mIdx] = { paid, amount: s.fee, status, receipt: rcpt, date, note };
   save('busFees', fees);
-  recentEntries.unshift({ sl, name: s.name, cls: s.cls, month: MONTHS[mIdx], paid, receipt: rcpt, date, status });
+  await cloudSave(); recentEntries.unshift({ sl, name: s.name, cls: s.cls, month: MONTHS[mIdx], paid, receipt: rcpt, date, status });
   renderRecentEntries();
   toast(`✅ ${s.name} — ${MONTHS[mIdx]} saved! Receipt: ${rcpt}`);
   // Auto-increment to next student
@@ -1091,12 +1192,36 @@ function quickClear() {
   document.getElementById('qEntryForm').style.display = 'none';
 }
 
+async function syncNow() {
+  toast('🔄 Syncing...');
+  await cloudLoad();
+  loadSetup();
+  renderStudents();
+  renderFeeEntry();
+  toast('✅ Sync Complete!');
+}
+
 // INIT PORTAL
 if (!IS_FORM) {
-  loadSetup(); renderStudents();
-  const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
-  document.getElementById('feeMonth').value = acIdx;
-  selectedRepMonth = acIdx;
+  // Show loading
+  document.getElementById('topSchoolName').textContent = '⏳ Loading...';
+
+  // Load from cloud first, then render
+  cloudLoad().then(() => {
+    loadSetup();
+    renderStudents();
+    const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
+    document.getElementById('feeMonth').value = acIdx;
+    selectedRepMonth = acIdx;
+    toast('✅ Data Loaded from Cloud!');
+  }).catch(() => {
+    // Fallback to local
+    loadSetup();
+    renderStudents();
+    const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
+    document.getElementById('feeMonth').value = acIdx;
+    selectedRepMonth = acIdx;
+  });
 }
 
 // ══════════════════════════════════════════
