@@ -151,6 +151,10 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
   .topbar, .tabs, .btn, .search-box, .report-month-row, .no-print { display: none !important; }
   body { background: #fff; }
   .card { box-shadow: none; border: 1px solid #ccc; }
+  .page { display: block !important; }
+  .page:not(.active) { display: none !important; }
+  th { background: #333 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  table { font-size: 0.8rem; }
 }
 </style>
 </head>
@@ -237,15 +241,21 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
     <div class="sec-hdr">
       <h2>👤 Student Register</h2>
       <div class="flex-gap">
-        <button class="btn btn-primary" onclick="openAddStudent()">➕ Add Student</button>
-        <button class="btn btn-outline" onclick="exportStudents()">⬇️ Export CSV</button>
+        <button class="btn btn-primary no-print" onclick="openAddStudent()">➕ Add Student</button>
+        <button class="btn btn-outline no-print" onclick="exportStudents()">⬇️ Export CSV</button>
+        <button class="btn btn-outline no-print" onclick="printStudentList()">🖨️ Print List</button>
       </div>
     </div>
-    <div class="search-box"><input id="stuSearch" placeholder="Search by name, class, route..." oninput="renderStudents()"></div>
-    <div class="card" style="padding:0 0 10px 0; overflow:hidden;">
+    <div class="search-box no-print"><input id="stuSearch" placeholder="Search by name, class, route..." oninput="renderStudents()"></div>
+    <div class="card" id="stuListCard" style="padding:0 0 10px 0; overflow:hidden;">
+      <div id="printHeader" style="display:none;text-align:center;padding:16px;">
+        <h2 style="color:var(--navy);margin-bottom:4px;" id="printSchoolName">School Name</h2>
+        <div style="color:var(--muted);font-weight:700;" id="printSubtitle">Student Register — Bus Transport</div>
+        <hr style="margin:12px 0;border-top:2px solid var(--border);">
+      </div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>#</th><th>Student Name</th><th>Class</th><th>Route</th><th>Monthly Fee</th><th>Parent</th><th>Phone</th><th>Actions</th></tr></thead>
+          <thead><tr><th>#</th><th>Student Name</th><th>Class</th><th>Route</th><th>Monthly Fee</th><th>Parent</th><th>Phone</th><th class="no-print">Actions</th></tr></thead>
           <tbody id="stuTable"></tbody>
         </table>
       </div>
@@ -918,9 +928,17 @@ function renderStudents() {
     <td><b>${s.name}</b>${s.adm?`<br><span class="text-muted">${s.adm}</span>`:''}</td>
     <td>${s.cls}</td><td><span class="route-tag">${getRoute(s.routeId)}</span></td>
     <td class="mono">${fmt(s.fee)}</td><td>${s.parent}</td><td>${s.phone}</td>
-    <td><div class="flex-gap"><button class="btn btn-outline btn-sm" onclick="editStudent('${s.id}')">✏️</button><button class="btn btn-red btn-sm" onclick="deleteStudent('${s.id}')">🗑️</button></div></td>
+    <td class="no-print"><div class="flex-gap"><button class="btn btn-outline btn-sm" onclick="editStudent('${s.id}')">✏️</button><button class="btn btn-red btn-sm" onclick="deleteStudent('${s.id}')">🗑️</button></div></td>
   </tr>`).join('');
 }
+function printStudentList() {
+  document.getElementById('printSchoolName').textContent = setup.school || 'School Name';
+  document.getElementById('printSubtitle').textContent = `Student Register — Bus Transport (${setup.year || ''}) — Total: ${students.length} Students`;
+  document.getElementById('printHeader').style.display = 'block';
+  window.print();
+  setTimeout(() => { document.getElementById('printHeader').style.display = 'none'; }, 500);
+}
+
 function exportStudents() {
   let csv = 'Name,Class,Roll,Route,Monthly Fee,Parent,Phone\n';
   students.forEach(s => { csv += `"${s.name}","${s.cls}","${s.roll||''}","${getRoute(s.routeId)}","${s.fee}","${s.parent}","${s.phone}"\n`; });
