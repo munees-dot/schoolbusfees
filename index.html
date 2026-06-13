@@ -208,6 +208,28 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
       </div>
       <button class="btn btn-primary" onclick="addRoute()">➕ Add Route</button>
     </div>
+
+    <!-- ═══ GOOGLE SHEETS BACKUP ═══ -->
+    <div class="card" style="border:2px solid #34a853;">
+      <div class="card-title"><span>📊</span> Google Sheets Backup <span style="background:#e6f4ea;color:#1e7e34;font-size:0.7rem;padding:3px 10px;border-radius:20px;font-weight:800;">RECOMMENDED</span></div>
+      <div class="info-box" style="border-color:#34a853;background:#e6f4ea;color:#1e5e2a;">
+        ⚠️ Data **JSONBin Cloud-ൽ** Sync ആകുന്നത് അതേപോലെ Continue ആകും — ഇത് **Extra Safety Backup** മാത്രമാണ്.<br><br>
+        Google Sheet-ൽ Students, Fees, Routes, Expenses — എല്ലാം Auto-Save ആകും. <b>File → Version History</b> വഴി എപ്പോഴും Old Data Recover ചെയ്യാം!<br><br>
+        <b>Setup (ഒരിക്കൽ മാത്രം):</b> Google Sheet → Extensions → Apps Script → Code Paste → Deploy → URL ഇവിടെ Paste ചെയ്യുക.
+      </div>
+      <div class="gform">
+        <div class="gform-field">
+          <label class="gform-label">Google Apps Script Web App URL</label>
+          <input class="gform-input" id="gsheetUrl" placeholder="https://script.google.com/macros/s/.../exec" style="font-family:monospace;font-size:0.82rem;">
+        </div>
+        <div class="flex-gap">
+          <button class="btn" style="background:#34a853;color:#fff;" onclick="testGSheetConnection()">🔌 Test Connection</button>
+          <button class="btn" style="background:#4285f4;color:#fff;" onclick="syncToGSheet()">⬆️ Backup Now to Sheets</button>
+          <button class="btn btn-outline" onclick="loadFromGSheet()">⬇️ Restore from Sheets</button>
+          <span id="gsheetStatus" style="align-self:center;font-weight:700;font-size:0.9rem;"></span>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- STUDENTS -->
@@ -802,6 +824,8 @@ function loadSetup() {
   document.getElementById('setupAddress').value = setup.address || '';
   document.getElementById('topSchoolName').textContent = setup.school || 'School Name';
   renderRoutes();
+  const savedGUrl = load('gsheetUrl', '');
+  if (savedGUrl && document.getElementById('gsheetUrl')) document.getElementById('gsheetUrl').value = savedGUrl;
 }
 async function saveSetup() {
   setup.school = document.getElementById('setupSchool').value.trim();
@@ -1516,11 +1540,29 @@ function renderExpenses() {
   let topCat = '—', topAmt = 0;
   Object.entries(catTotals).forEach(([k,v]) => { if (v > topAmt) { topAmt = v; topCat = k; } });
 
+  // ── Calculate Total Fees Collected (filtered by same month if selected) ──
+  let totalCollected = 0;
+  if (monthF !== '') {
+    const mIdx = parseInt(monthF);
+    students.forEach(s => {
+      const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0 };
+      totalCollected += Number(f.paid||0);
+    });
+  } else {
+    // All months total
+    students.forEach(s => {
+      const sf = fees[s.id] || {};
+      Object.keys(sf).forEach(mi => { totalCollected += Number(sf[mi].paid||0); });
+    });
+  }
+  const balance = totalCollected - total;
+
   document.getElementById('expenseStats').innerHTML = `
     <div class="stat-card"><div class="stat-num" style="color:var(--navy)">${list.length}</div><div class="stat-label">Total Entries</div></div>
     <div class="stat-card"><div class="stat-num text-red">${fmt(total)}</div><div class="stat-label">Total Expense</div></div>
     <div class="stat-card"><div class="stat-num" style="color:var(--bus)">${fmt(topAmt)}</div><div class="stat-label">Top: ${topCat}</div></div>
-    <div class="stat-card"><div class="stat-num text-green">${fmt(total/(list.length||1))}</div><div class="stat-label">Avg per Entry</div></div>`;
+    <div class="stat-card"><div class="stat-num text-green">${fmt(totalCollected)}</div><div class="stat-label">Fees Collected${monthF!==''?' ('+MONTHS[parseInt(monthF)]+')':' (All Time)'}</div></div>
+    <div class="stat-card" style="border:2px solid ${balance>=0?'#27ae60':'#e74c3c'};"><div class="stat-num" style="color:${balance>=0?'var(--green)':'var(--red)'}">${fmt(balance)}</div><div class="stat-label">${balance>=0?'✅ Net Balance':'⚠️ Deficit'}</div></div>`;
 
   document.getElementById('expenseTable').innerHTML = list.map((e,i) => `
     <tr>
@@ -1538,6 +1580,95 @@ function exportExpenses() {
   let csv = 'Date,Category,Route,Amount,Note\n';
   expenses.forEach(e => { csv += `"${e.date}","${e.category}","${getRoute(e.routeId)||''}","${e.amount}","${e.note||''}"\n`; });
   downloadCSV(csv, 'bus_expenses.csv');
+}
+
+// ═══════════════════ GOOGLE SHEETS BACKUP ═══════════════════
+function getGSheetUrl() {
+  const url = document.getElementById('gsheetUrl').value.trim();
+  if (url) save('gsheetUrl', url);
+  return url || load('gsheetUrl', '');
+}
+
+async function testGSheetConnection() {
+  const url = getGSheetUrl();
+  const st = document.getElementById('gsheetStatus');
+  if (!url) { st.innerHTML = '<span style="color:var(--red)">⚠️ Enter Web App URL first</span>'; return; }
+  st.innerHTML = '⏳ Testing...';
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'load' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      st.innerHTML = `<span style="color:var(--green)">✅ Connected! (${(data.data.students||[]).length} students in sheet)</span>`;
+      toast('✅ Google Sheets Connected!');
+    } else {
+      st.innerHTML = `<span style="color:var(--red)">❌ ${data.message}</span>`;
+    }
+  } catch(e) {
+    st.innerHTML = `<span style="color:var(--red)">❌ Connection failed: ${e.message}</span>`;
+  }
+}
+
+async function syncToGSheet() {
+  const url = getGSheetUrl();
+  const st = document.getElementById('gsheetStatus');
+  if (!url) { st.innerHTML = '<span style="color:var(--red)">⚠️ Enter Web App URL first</span>'; return; }
+  st.innerHTML = '⏳ Backing up to Sheets...';
+
+  const payload = { setup, routes, students, fees, expenses };
+
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'save', data: payload })
+    });
+    const data = await res.json();
+    if (data.success) {
+      st.innerHTML = '<span style="color:var(--green)">✅ Backed up to Google Sheets!</span>';
+      toast('✅ Backup complete!');
+    } else {
+      st.innerHTML = `<span style="color:var(--red)">❌ ${data.message}</span>`;
+    }
+  } catch(e) {
+    st.innerHTML = `<span style="color:var(--red)">❌ Backup failed: ${e.message}</span>`;
+  }
+}
+
+async function loadFromGSheet() {
+  const url = getGSheetUrl();
+  const st = document.getElementById('gsheetStatus');
+  if (!url) { st.innerHTML = '<span style="color:var(--red)">⚠️ Enter Web App URL first</span>'; return; }
+  if (!confirm('Google Sheets-ലെ Data ഇപ്പോഴത്തെ Portal Data Replace ചെയ്യും. തുടരണോ?')) return;
+  st.innerHTML = '⏳ Restoring from Sheets...';
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ action: 'load' })
+    });
+    const data = await res.json();
+    if (data.success) {
+      const d = data.data;
+      if (d.setup && Object.keys(d.setup).length) { setup = d.setup; save('busSetup', setup); }
+      if (d.routes) { routes = d.routes; save('busRoutes', routes); }
+      if (d.students) { students = d.students; save('busStudents', students); }
+      if (d.fees) { fees = d.fees; save('busFees', fees); }
+      if (d.expenses) { expenses = d.expenses; save('busExpenses', expenses); }
+      loadSetup();
+      renderStudents();
+      await cloudSave(); // sync restored data back to JSONBin too
+      st.innerHTML = '<span style="color:var(--green)">✅ Restored from Google Sheets!</span>';
+      toast('✅ Data restored!');
+    } else {
+      st.innerHTML = `<span style="color:var(--red)">❌ ${data.message}</span>`;
+    }
+  } catch(e) {
+    st.innerHTML = `<span style="color:var(--red)">❌ Restore failed: ${e.message}</span>`;
+  }
 }
 
 // INIT PORTAL
