@@ -174,6 +174,8 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
   <button class="tab active" onclick="showTab('setup')">⚙️ Setup</button>
   <button class="tab" onclick="showTab('students')">👤 Students</button>
   <button class="tab" onclick="showTab('fees')">💰 Fee Entry</button>
+  <button class="tab" onclick="showTab('pending')">⏰ Pending</button>
+  <button class="tab" onclick="showTab('expenses')">💸 Expenses</button>
   <button class="tab" onclick="showTab('reports')">📊 Reports</button>
   <button class="tab" onclick="showTab('sync')">🔗 Share Form</button>
 </div>
@@ -366,6 +368,117 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
         </table>
       </div>
       <div id="feeEmpty" class="empty-state" style="display:none;"><div class="es-icon">📋</div><p>No students found.</p></div>
+    </div>
+  </div>
+
+  <!-- PENDING FEES -->
+  <div class="page" id="page-pending">
+    <div class="sec-hdr"><h2>⏰ Fee Pending List</h2></div>
+
+    <div class="card">
+      <div class="gform-row" style="margin-bottom:0;">
+        <div class="gform-field"><label class="gform-label">Select Month</label>
+          <select class="gform-select" id="pendingMonth" onchange="renderPendingList()">
+            <option value="0">June</option><option value="1">July</option><option value="2">August</option><option value="3">September</option><option value="4">October</option><option value="5">November</option><option value="6">December</option><option value="7">January</option><option value="8">February</option><option value="9">March</option><option value="10">April</option><option value="11">May</option>
+            <option value="12" style="background:#fff8e8;font-weight:800;">⭐ Advance</option>
+          </select>
+        </div>
+        <div class="gform-field"><label class="gform-label">Filter by Class</label><input class="gform-input" id="pendingClassFilter" placeholder="e.g. 5A" oninput="renderPendingList()"></div>
+        <div class="gform-field"><label class="gform-label">Filter by Status</label>
+          <select class="gform-select" id="pendingStatusFilter" onchange="renderPendingList()">
+            <option value="all">Unpaid + Partial</option>
+            <option value="unpaid">Unpaid Only</option>
+            <option value="partial">Partial Only</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="stats-row" id="pendingStats"></div>
+
+    <div class="card">
+      <div class="sec-hdr">
+        <div class="card-title" style="margin:0"><span>📋</span> Pending Students</div>
+        <div class="flex-gap">
+          <button class="btn btn-outline btn-sm" onclick="selectAllPending(true)">☑️ Select All</button>
+          <button class="btn btn-outline btn-sm" onclick="selectAllPending(false)">☐ Clear All</button>
+          <button class="btn btn-green btn-sm" onclick="sendBulkWhatsApp()">💬 Send WhatsApp Reminders</button>
+        </div>
+      </div>
+      <div class="search-box"><input id="pendingSearch" placeholder="Search student..." oninput="renderPendingList()"></div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th><input type="checkbox" id="pendingSelectAll" onchange="toggleAllPending(this.checked)"></th><th>#</th><th>Student</th><th>Class</th><th>Parent</th><th>Phone</th><th>Due (₹)</th><th>Paid (₹)</th><th>Balance (₹)</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody id="pendingTable"></tbody>
+        </table>
+      </div>
+      <div id="pendingEmpty" class="empty-state" style="display:none;"><div class="es-icon">🎉</div><p>No pending fees! Everyone has paid.</p></div>
+    </div>
+  </div>
+
+  <!-- EXPENSES -->
+  <div class="page" id="page-expenses">
+    <div class="sec-hdr"><h2>💸 Bus Expenses</h2></div>
+
+    <div class="card" style="border:2px solid var(--bus);">
+      <div class="card-title"><span>➕</span> Add Expense</div>
+      <div class="gform">
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Date <span class="req">*</span></label><input class="gform-input" id="expDate" type="date"></div>
+          <div class="gform-field"><label class="gform-label">Category <span class="req">*</span></label>
+            <select class="gform-select" id="expCategory">
+              <option value="">-- Select Category --</option>
+              <option>Fuel / Diesel</option>
+              <option>Driver Salary</option>
+              <option>Conductor Salary</option>
+              <option>Maintenance / Service</option>
+              <option>Insurance</option>
+              <option>Tax / RC / Permit</option>
+              <option>Tyre / Spare Parts</option>
+              <option>Cleaning</option>
+              <option>Other</option>
+            </select>
+          </div>
+        </div>
+        <div class="gform-row">
+          <div class="gform-field"><label class="gform-label">Amount (₹) <span class="req">*</span></label><input class="gform-input" id="expAmount" type="number" min="0" placeholder="0"></div>
+          <div class="gform-field"><label class="gform-label">Route (Optional)</label><select class="gform-select" id="expRoute"><option value="">-- All Routes --</option></select></div>
+        </div>
+        <div class="gform-field"><label class="gform-label">Note</label><input class="gform-input" id="expNote" placeholder="e.g. Diesel 20 litres - Bus No KL-XX-XXXX"></div>
+        <button class="btn btn-primary" onclick="addExpense()">💾 Save Expense</button>
+      </div>
+    </div>
+
+    <div class="stats-row" id="expenseStats"></div>
+
+    <div class="card">
+      <div class="sec-hdr">
+        <div class="card-title" style="margin:0"><span>📋</span> Expense History</div>
+        <div class="flex-gap">
+          <button class="btn btn-outline btn-sm" onclick="exportExpenses()">⬇️ Export CSV</button>
+        </div>
+      </div>
+      <div class="gform-row" style="margin-bottom:14px;">
+        <div class="gform-field"><label class="gform-label">Filter by Month</label>
+          <select class="gform-select" id="expMonthFilter" onchange="renderExpenses()">
+            <option value="">All Months</option>
+            <option value="0">June</option><option value="1">July</option><option value="2">August</option><option value="3">September</option><option value="4">October</option><option value="5">November</option><option value="6">December</option><option value="7">January</option><option value="8">February</option><option value="9">March</option><option value="10">April</option><option value="11">May</option>
+          </select>
+        </div>
+        <div class="gform-field"><label class="gform-label">Filter by Category</label>
+          <select class="gform-select" id="expCategoryFilter" onchange="renderExpenses()">
+            <option value="">All Categories</option>
+            <option>Fuel / Diesel</option><option>Driver Salary</option><option>Conductor Salary</option><option>Maintenance / Service</option><option>Insurance</option><option>Tax / RC / Permit</option><option>Tyre / Spare Parts</option><option>Cleaning</option><option>Other</option>
+          </select>
+        </div>
+      </div>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>#</th><th>Date</th><th>Category</th><th>Route</th><th>Amount (₹)</th><th>Note</th><th>Action</th></tr></thead>
+          <tbody id="expenseTable"></tbody>
+        </table>
+      </div>
+      <div id="expenseEmpty" class="empty-state" style="display:none;"><div class="es-icon">💸</div><p>No expenses recorded yet.</p></div>
     </div>
   </div>
 
@@ -606,6 +719,7 @@ async function cloudLoad() {
     if (record.routes)   { routes   = record.routes;   save('busRoutes', routes); }
     if (record.students) { students = record.students; save('busStudents', students); }
     if (record.fees)     { fees     = record.fees;     save('busFees', fees); }
+    if (record.expenses) { expenses = record.expenses; save('busExpenses', expenses); }
     return record;
   } catch(e) {
     console.log('Cloud load error:', e);
@@ -631,7 +745,8 @@ async function cloudSave() {
       setup,
       routes,
       students,
-      fees
+      fees,
+      expenses
     };
 
     const putRes = await fetch(`${API_BASE}/${CLOUD_BIN}`, {
@@ -661,6 +776,7 @@ let setup = load('busSetup', { school: '', year: '', phone: '', address: '' });
 let routes = load('busRoutes', []);
 let students = load('busStudents', []);
 let fees = load('busFees', {});
+let expenses = load('busExpenses', []);
 let cloudCfg = { key: CLOUD_KEY, bin: CLOUD_BIN };
 let editStuId = null;
 let selectedRepMonth = 0;
@@ -672,6 +788,8 @@ function showTab(tab) {
   document.getElementById('page-' + tab).classList.add('active');
   if (tab === 'students') renderStudents();
   if (tab === 'fees') { populateFeeFilters(); renderFeeEntry(); }
+  if (tab === 'pending') { renderPendingList(); }
+  if (tab === 'expenses') { populateExpenseRouteSelect(); renderExpenses(); }
   if (tab === 'reports') { buildRepMonthPicker(); renderReport(); }
   if (tab === 'sync') initSyncTab();
 }
@@ -1063,7 +1181,10 @@ function renderPending(pending, fullRecord) {
   <div class="flex-gap" style="margin-top:12px;"><button class="btn btn-green" onclick="approveAll()">✅ Approve All</button></div>`;
 }
 async function approveStudent(subId) {
-  const sub = window._pendingSubs.find(s => s.id===subId); if (!sub) return;
+  const sub = window._pendingSubs.find(s => s.id===subId);
+  if (!sub) return;
+
+  // Add to students if not exists
   const exists = students.find(s => s.name===sub.name && s.phone===sub.phone);
   if (!exists) {
     students.push({
@@ -1081,13 +1202,29 @@ async function approveStudent(subId) {
       trip: sub.trip||''
     });
     save('busStudents', students);
-    renderStudents(); // ← Students Tab Refresh
   }
-  window._cloudRecord.submissions = window._cloudRecord.submissions.map(s => s.id===subId ? {...s,status:'approved'} : s);
+
+  // Mark as approved in cloud record
+  window._cloudRecord.submissions = window._cloudRecord.submissions.map(s =>
+    s.id===subId ? {...s, status:'approved'} : s
+  );
+
+  // Save EVERYTHING to cloud — students + submissions together
+  window._cloudRecord.students = students;
+  window._cloudRecord.routes   = routes;
+  window._cloudRecord.setup    = setup;
+  window._cloudRecord.fees     = fees;
+
   await pushCloudRecord(window._cloudRecord);
+
+  // Remove from pending list
   window._pendingSubs = window._pendingSubs.filter(s => s.id!==subId);
   renderPending(window._pendingSubs, window._cloudRecord);
-  toast(`✅ ${sub.name} Students Tab-ൽ Add ആയി!`);
+
+  // Refresh Students tab immediately
+  renderStudents();
+
+  toast(`✅ ${sub.name} — Students List-ൽ Add ആയി!`);
 }
 async function rejectStudent(subId) {
   if (!confirm('Reject this submission?')) return;
@@ -1201,10 +1338,213 @@ async function syncNow() {
   toast('✅ Sync Complete!');
 }
 
+// ═══════════════════ FEE PENDING LIST ═══════════════════
+let pendingSelections = {}; // {studentId: true/false}
+
+function renderPendingList() {
+  const mIdx = parseInt(document.getElementById('pendingMonth').value);
+  const classF = (document.getElementById('pendingClassFilter').value || '').toLowerCase();
+  const statusF = document.getElementById('pendingStatusFilter').value;
+  const search = (document.getElementById('pendingSearch').value || '').toLowerCase();
+
+  let list = students.filter(s => {
+    const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0, status:'unpaid' };
+    if (f.status === 'paid') return false; // exclude fully paid
+    if (statusF === 'unpaid' && f.status !== 'unpaid') return false;
+    if (statusF === 'partial' && f.status !== 'partial') return false;
+    if (classF && !s.cls.toLowerCase().includes(classF)) return false;
+    if (search && !s.name.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('pendingEmpty').style.display = list.length ? 'none' : 'block';
+
+  let totalPending = 0, totalCollectedFromThem = 0, unpaidCount = 0, partialCount = 0;
+  list.forEach(s => {
+    const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0, status:'unpaid' };
+    totalPending += (s.fee - Number(f.paid||0));
+    totalCollectedFromThem += Number(f.paid||0);
+    if (f.status === 'unpaid') unpaidCount++; else partialCount++;
+  });
+
+  document.getElementById('pendingStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num text-red">${list.length}</div><div class="stat-label">Pending Students</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--bus)">${unpaidCount}</div><div class="stat-label">Unpaid</div></div>
+    <div class="stat-card"><div class="stat-num text-green">${partialCount}</div><div class="stat-label">Partial</div></div>
+    <div class="stat-card"><div class="stat-num text-red">${fmt(totalPending)}</div><div class="stat-label">Total Pending Amount</div></div>`;
+
+  document.getElementById('pendingTable').innerHTML = list.map((s,i) => {
+    const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0, status:'unpaid' };
+    const balance = s.fee - Number(f.paid||0);
+    const badge = f.status==='partial' ? '<span class="badge badge-partial">Partial</span>' : '<span class="badge badge-unpaid">Unpaid</span>';
+    const checked = pendingSelections[s.id] ? 'checked' : '';
+    return `<tr>
+      <td><input type="checkbox" class="pending-check" data-id="${s.id}" ${checked} onchange="pendingSelections['${s.id}']=this.checked"></td>
+      <td class="text-muted">${i+1}</td>
+      <td><b>${s.name}</b></td>
+      <td>${s.cls}</td>
+      <td>${s.parent}</td>
+      <td>${s.phone}</td>
+      <td class="mono">${fmt(s.fee)}</td>
+      <td class="mono text-green">${fmt(f.paid||0)}</td>
+      <td class="mono text-red">${fmt(balance)}</td>
+      <td>${badge}</td>
+      <td><button class="btn btn-green btn-sm" onclick="sendSingleWhatsApp('${s.id}',${mIdx})">💬 Remind</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function toggleAllPending(checked) {
+  document.querySelectorAll('.pending-check').forEach(cb => {
+    cb.checked = checked;
+    pendingSelections[cb.dataset.id] = checked;
+  });
+}
+function selectAllPending(val) {
+  document.getElementById('pendingSelectAll').checked = val;
+  toggleAllPending(val);
+}
+
+function sendSingleWhatsApp(studentId, mIdx) {
+  const s = students.find(x => x.id === studentId);
+  if (!s) return;
+  const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0 };
+  const balance = s.fee - Number(f.paid||0);
+  const msg = buildReminderMessage(s, mIdx, balance);
+  const phone = cleanPhone(s.phone);
+  window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+}
+
+function sendBulkWhatsApp() {
+  const mIdx = parseInt(document.getElementById('pendingMonth').value);
+  const selectedIds = Object.keys(pendingSelections).filter(id => pendingSelections[id]);
+  if (!selectedIds.length) { toast('Select at least one student!', false); return; }
+
+  if (selectedIds.length > 5) {
+    if (!confirm(`${selectedIds.length} WhatsApp tabs ഒരുമിച്ച് തുറക്കും. തുടരണോ?`)) return;
+  }
+
+  selectedIds.forEach((id, idx) => {
+    setTimeout(() => {
+      const s = students.find(x => x.id === id);
+      if (!s) return;
+      const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0 };
+      const balance = s.fee - Number(f.paid||0);
+      const msg = buildReminderMessage(s, mIdx, balance);
+      const phone = cleanPhone(s.phone);
+      window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank');
+    }, idx * 800); // stagger to avoid popup blocking
+  });
+  toast(`💬 ${selectedIds.length} WhatsApp messages opening...`);
+}
+
+function buildReminderMessage(s, mIdx, balance) {
+  const monthName = MONTHS[mIdx];
+  return `🚌 *${setup.school || 'School'} - Bus Fee Reminder*\n\n` +
+    `Dear Parent,\n\n` +
+    `This is a reminder that the bus fee for *${s.name}* (Class ${s.cls}) for *${monthName}* is pending.\n\n` +
+    `💰 Monthly Fee: ₹${s.fee}\n` +
+    `✅ Paid: ₹${(s.fee - balance)}\n` +
+    `⏰ *Balance Due: ₹${balance}*\n\n` +
+    `Kindly clear the pending amount at the earliest. Thank you! 🙏`;
+}
+
+function cleanPhone(phone) {
+  let p = phone.replace(/[^0-9]/g, '');
+  if (p.length === 10) p = '91' + p; // Add India code if missing
+  return p;
+}
+
+// ═══════════════════ EXPENSES ═══════════════════
+function populateExpenseRouteSelect() {
+  const sel = document.getElementById('expRoute');
+  sel.innerHTML = '<option value="">-- All Routes --</option>' + routes.map(r => `<option value="${r.id}">${r.name}</option>`).join('');
+}
+
+async function addExpense() {
+  const date = document.getElementById('expDate').value;
+  const category = document.getElementById('expCategory').value;
+  const amount = parseFloat(document.getElementById('expAmount').value) || 0;
+  const routeId = document.getElementById('expRoute').value;
+  const note = document.getElementById('expNote').value.trim();
+
+  if (!date || !category || !amount) { toast('Fill Date, Category and Amount!', false); return; }
+
+  expenses.push({ id: uid(), date, category, amount, routeId, note, createdAt: new Date().toISOString() });
+  save('busExpenses', expenses);
+
+  document.getElementById('expAmount').value = '';
+  document.getElementById('expNote').value = '';
+  document.getElementById('expCategory').value = '';
+
+  const ok = await cloudSave();
+  toast(ok ? '✅ Expense Saved & Synced!' : 'Expense saved locally');
+  renderExpenses();
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  expenses = expenses.filter(e => e.id !== id);
+  save('busExpenses', expenses);
+  await cloudSave();
+  renderExpenses();
+  toast('Expense deleted');
+}
+
+function renderExpenses() {
+  const monthF = document.getElementById('expMonthFilter').value;
+  const catF = document.getElementById('expCategoryFilter').value;
+
+  let list = [...expenses].sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if (monthF !== '') {
+    list = list.filter(e => {
+      const d = new Date(e.date);
+      const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][d.getMonth()];
+      return acIdx === parseInt(monthF);
+    });
+  }
+  if (catF) list = list.filter(e => e.category === catF);
+
+  document.getElementById('expenseEmpty').style.display = list.length ? 'none' : 'block';
+
+  let total = 0;
+  const catTotals = {};
+  list.forEach(e => { total += Number(e.amount); catTotals[e.category] = (catTotals[e.category]||0) + Number(e.amount); });
+
+  // Top category
+  let topCat = '—', topAmt = 0;
+  Object.entries(catTotals).forEach(([k,v]) => { if (v > topAmt) { topAmt = v; topCat = k; } });
+
+  document.getElementById('expenseStats').innerHTML = `
+    <div class="stat-card"><div class="stat-num" style="color:var(--navy)">${list.length}</div><div class="stat-label">Total Entries</div></div>
+    <div class="stat-card"><div class="stat-num text-red">${fmt(total)}</div><div class="stat-label">Total Expense</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--bus)">${fmt(topAmt)}</div><div class="stat-label">Top: ${topCat}</div></div>
+    <div class="stat-card"><div class="stat-num text-green">${fmt(total/(list.length||1))}</div><div class="stat-label">Avg per Entry</div></div>`;
+
+  document.getElementById('expenseTable').innerHTML = list.map((e,i) => `
+    <tr>
+      <td class="text-muted">${i+1}</td>
+      <td>${new Date(e.date).toLocaleDateString('en-IN')}</td>
+      <td><span class="route-tag">${e.category}</span></td>
+      <td>${getRoute(e.routeId) || '—'}</td>
+      <td class="mono text-red">${fmt(e.amount)}</td>
+      <td class="text-muted">${e.note || '—'}</td>
+      <td><button class="btn btn-red btn-sm" onclick="deleteExpense('${e.id}')">🗑️</button></td>
+    </tr>`).join('');
+}
+
+function exportExpenses() {
+  let csv = 'Date,Category,Route,Amount,Note\n';
+  expenses.forEach(e => { csv += `"${e.date}","${e.category}","${getRoute(e.routeId)||''}","${e.amount}","${e.note||''}"\n`; });
+  downloadCSV(csv, 'bus_expenses.csv');
+}
+
 // INIT PORTAL
 if (!IS_FORM) {
   // Show loading
   document.getElementById('topSchoolName').textContent = '⏳ Loading...';
+  document.getElementById('expDate').value = new Date().toISOString().split('T')[0];
 
   // Load from cloud first, then render
   cloudLoad().then(() => {
@@ -1212,6 +1552,7 @@ if (!IS_FORM) {
     renderStudents();
     const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
     document.getElementById('feeMonth').value = acIdx;
+    document.getElementById('pendingMonth').value = acIdx;
     selectedRepMonth = acIdx;
     toast('✅ Data Loaded from Cloud!');
   }).catch(() => {
@@ -1220,6 +1561,7 @@ if (!IS_FORM) {
     renderStudents();
     const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
     document.getElementById('feeMonth').value = acIdx;
+    document.getElementById('pendingMonth').value = acIdx;
     selectedRepMonth = acIdx;
   });
 }
