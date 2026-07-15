@@ -148,13 +148,32 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
 .powered { text-align: center; color: #aab4cc; font-size: 0.75rem; margin-top: 20px; font-weight: 600; }
 
 @media print {
+  @page { margin: 8mm; size: A4 portrait; }
   .topbar, .tabs, .btn, .search-box, .report-month-row, .no-print { display: none !important; }
-  body { background: #fff; }
-  .card { box-shadow: none; border: 1px solid #ccc; }
+  body { background: #fff; margin: 0; }
+  .card { box-shadow: none; border: none; padding: 0; margin: 0; }
   .page { display: block !important; }
   .page:not(.active) { display: none !important; }
-  th { background: #333 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  table { font-size: 0.8rem; }
+  .content { padding: 6px; max-width: 100%; }
+
+  /* Compact table for printing */
+  table { font-size: 8.5px; border-collapse: collapse; width: 100%; }
+  th, td { padding: 2px 4px; border: 1px solid #999; line-height: 1.2; }
+  th { background: #333 !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-size: 8px; text-transform: uppercase; }
+  tr:hover td { background: transparent !important; }
+
+  /* Tighten badges/tags for print */
+  .badge, .route-tag { padding: 1px 4px; font-size: 7.5px; border: 1px solid #ccc; background: transparent !important; color: #000 !important; }
+
+  /* Print header compact */
+  #printHeader { padding: 4px !important; }
+  #printHeader h2 { font-size: 14px; margin-bottom: 2px; }
+  #printHeader div { font-size: 9px; }
+  #printHeader hr { margin: 4px 0 !important; }
+
+  /* Avoid row breaking across pages */
+  tr { page-break-inside: avoid; }
+  thead { display: table-header-group; }
 }
 </style>
 </head>
@@ -317,18 +336,32 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
     <!-- QUICK FEE ENTRY PANEL -->
     <div class="card" style="border:2px solid var(--bus);">
       <div class="card-title"><span>⚡</span> Quick Fee Entry</div>
-      <div style="display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:start;margin-bottom:16px;" id="quickEntryGrid">
+
+      <!-- Search by SL or Name -->
+      <div style="display:grid;grid-template-columns:110px 1fr;gap:12px;align-items:start;margin-bottom:12px;">
         <div class="gform-field">
-          <label class="gform-label">SL No / ID</label>
+          <label class="gform-label">SL No</label>
           <input class="gform-input" id="qSlNo" type="number" min="1" placeholder="1" oninput="quickLookup()" style="font-size:1.1rem;font-weight:800;text-align:center;">
         </div>
-        <div id="qStudentInfo" style="background:var(--light);border-radius:12px;padding:14px 18px;border:2px solid var(--border);min-height:60px;display:flex;align-items:center;">
-          <span style="color:var(--muted);font-weight:700;">← Enter SL No to find student</span>
+        <div class="gform-field">
+          <label class="gform-label">Search by Name</label>
+          <input class="gform-input" id="qNameSearch" placeholder="Type student name..." oninput="quickSearchByName()">
+          <div id="qNameResults" style="display:none;background:#fff;border:2px solid var(--bus);border-radius:10px;margin-top:4px;max-height:180px;overflow-y:auto;z-index:99;position:relative;"></div>
         </div>
       </div>
 
+      <div id="qStudentInfo" style="background:var(--light);border-radius:12px;padding:14px 18px;border:2px solid var(--border);min-height:60px;display:flex;align-items:center;margin-bottom:12px;">
+        <span style="color:var(--muted);font-weight:700;">← SL No ഇടുക അല്ലെങ്കിൽ Name Search ചെയ്യുക</span>
+      </div>
+
       <div id="qEntryForm" style="display:none;">
-        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px;">
+        <!-- Payment History -->
+        <div id="qPayHistory" style="margin-bottom:14px;background:#f8fff8;border:1.5px solid #27ae60;border-radius:10px;padding:12px 14px;display:none;">
+          <div style="font-weight:800;color:var(--navy);margin-bottom:8px;font-size:0.88rem;">📋 Payment History</div>
+          <div id="qPayHistoryContent"></div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:14px;">
           <div class="gform-field">
             <label class="gform-label">Month <span class="req">*</span></label>
             <select class="gform-select" id="qMonth">
@@ -354,18 +387,19 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
           </div>
         </div>
         <div class="flex-gap">
-          <button class="btn btn-primary" onclick="quickSaveFee()">💾 Save & Next</button>
+          <button class="btn btn-primary" onclick="quickSaveFee()">💾 Save</button>
           <button class="btn btn-outline" onclick="quickClear()">🔄 Clear</button>
+          <button class="btn btn-green" id="qWhatsApp" onclick="sendWhatsAppReminder()" style="display:none;">💬 WhatsApp</button>
         </div>
       </div>
     </div>
 
-    <!-- RECENT ENTRIES TABLE -->
+    <!-- TODAY'S ENTRIES -->
     <div class="card" id="recentEntriesCard" style="display:none;">
       <div class="card-title"><span>📋</span> Today's Fee Entries</div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th>SL</th><th>Student</th><th>Class</th><th>Month</th><th>Paid (₹)</th><th>Receipt No</th><th>Date</th><th>Status</th></tr></thead>
+          <thead><tr><th>#</th><th>Student</th><th>Class</th><th>Month</th><th>Paid (₹)</th><th>Receipt</th><th>Date</th><th>Status</th><th>Edit</th></tr></thead>
           <tbody id="recentTable"></tbody>
         </table>
       </div>
@@ -440,7 +474,7 @@ hr.divider { border: none; border-top: 2px dashed var(--border); margin: 20px 0;
       <div class="search-box"><input id="pendingSearch" placeholder="Search student..." oninput="renderPendingList()"></div>
       <div class="tbl-wrap">
         <table>
-          <thead><tr><th><input type="checkbox" id="pendingSelectAll" onchange="toggleAllPending(this.checked)"></th><th>#</th><th>Student</th><th>Class</th><th>Parent</th><th>Phone</th><th>Due (₹)</th><th>Paid (₹)</th><th>Balance (₹)</th><th>Status</th><th>Action</th></tr></thead>
+          <thead><tr><th><input type="checkbox" id="pendingSelectAll" onchange="toggleAllPending(this.checked)"></th><th>#</th><th>Student / Class / Phone</th><th>Parent / Route</th><th>Balance</th><th>Status</th><th>💬</th></tr></thead>
           <tbody id="pendingTable"></tbody>
         </table>
       </div>
@@ -1289,39 +1323,110 @@ async function pushCloudRecord(record) {
 
 // ═══════════════════ QUICK FEE ENTRY ═══════════════════
 let recentEntries = [];
+let currentQuickStudent = null;
+
+function quickSearchByName() {
+  const q = document.getElementById('qNameSearch').value.trim().toLowerCase();
+  const results = document.getElementById('qNameResults');
+  if (!q) { results.style.display = 'none'; return; }
+  const matches = students.filter(s => s.name.toLowerCase().includes(q)).slice(0, 8);
+  if (!matches.length) { results.style.display = 'none'; return; }
+  results.style.display = 'block';
+  results.innerHTML = matches.map((s) => `
+    <div onclick="selectStudentFromSearch(${students.indexOf(s)+1})"
+      style="padding:10px 14px;cursor:pointer;border-bottom:1px solid var(--border);font-weight:700;"
+      onmouseover="this.style.background='#fff8e8'" onmouseout="this.style.background='#fff'">
+      <span style="color:var(--bus);margin-right:8px;">#${students.indexOf(s)+1}</span>
+      ${s.name} <span style="color:var(--muted);font-weight:600;font-size:0.82rem;">${s.cls}</span>
+    </div>`).join('');
+}
+
+function selectStudentFromSearch(sl) {
+  document.getElementById('qSlNo').value = sl;
+  document.getElementById('qNameSearch').value = '';
+  document.getElementById('qNameResults').style.display = 'none';
+  quickLookup();
+}
+
+function getAutoMonth(studentId) {
+  const advF = (fees[studentId] && fees[studentId][12]) || {};
+  if (!advF.status || advF.status === 'unpaid') return 12;
+  for (let mi = 0; mi <= 11; mi++) {
+    const f = (fees[studentId] && fees[studentId][mi]) || {};
+    if (!f.status || f.status === 'unpaid') return mi;
+  }
+  return [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
+}
 
 function quickLookup() {
   const sl = parseInt(document.getElementById('qSlNo').value);
   const infoBox = document.getElementById('qStudentInfo');
   const form = document.getElementById('qEntryForm');
   if (!sl || sl < 1) {
-    infoBox.innerHTML = '<span style="color:var(--muted);font-weight:700;">← Enter SL No to find student</span>';
-    form.style.display = 'none'; return;
+    infoBox.innerHTML = '<span style="color:var(--muted);font-weight:700;">← SL No ഇടുക അല്ലെങ്കിൽ Name Search ചെയ്യുക</span>';
+    form.style.display = 'none'; currentQuickStudent = null; return;
   }
   const s = students[sl - 1];
   if (!s) {
     infoBox.innerHTML = `<span style="color:var(--red);font-weight:800;">⚠️ SL No ${sl} — Student not found</span>`;
-    form.style.display = 'none'; return;
+    form.style.display = 'none'; currentQuickStudent = null; return;
   }
+  currentQuickStudent = s;
   infoBox.innerHTML = `
-    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;width:100%;">
-      <div>
-        <div style="font-size:1.15rem;font-weight:900;color:var(--navy);">${s.name}</div>
-        <div style="font-size:0.85rem;color:var(--muted);font-weight:700;margin-top:2px;">
-          Class: <b>${s.cls}</b> &nbsp;|&nbsp; Route: <b>${getRoute(s.routeId)||'—'}</b> &nbsp;|&nbsp; Parent: <b>${s.parent}</b> &nbsp;|&nbsp; Fee: <b>${fmt(s.fee)}/month</b>
-        </div>
+    <div style="width:100%;">
+      <div style="font-size:1.1rem;font-weight:900;color:var(--navy);">${s.name}</div>
+      <div style="font-size:0.85rem;color:var(--muted);font-weight:700;margin-top:2px;">
+        Class: <b>${s.cls}</b> &nbsp;|&nbsp; Route: <b>${getRoute(s.routeId)||'—'}</b> &nbsp;|&nbsp; Fee: <b>${fmt(s.fee)}/month</b>
       </div>
     </div>`;
+  const autoMonth = getAutoMonth(s.id);
+  document.getElementById('qMonth').value = autoMonth;
+  showPayHistory(s);
   document.getElementById('qAmt').value = s.fee;
   document.getElementById('qDate').value = new Date().toISOString().split('T')[0];
-  const acIdx = [6,7,8,9,10,11,0,1,2,3,4,5][new Date().getMonth()];
-  document.getElementById('qMonth').value = acIdx;
+  if(document.getElementById('qWhatsApp')) document.getElementById('qWhatsApp').style.display = 'inline-block';
   form.style.display = 'block';
 }
 
+function showPayHistory(s) {
+  const histDiv = document.getElementById('qPayHistory');
+  const histContent = document.getElementById('qPayHistoryContent');
+  if (!histDiv) return;
+  const paidMonths = [];
+  for (let mi = 0; mi <= 12; mi++) {
+    const f = (fees[s.id] && fees[s.id][mi]) || {};
+    if (f.status && f.status !== 'unpaid') {
+      paidMonths.push(`<span class="badge ${f.status==='paid'?'badge-paid':'badge-partial'}" style="margin:2px;cursor:pointer;" onclick="editPayment('${s.id}',${mi})" title="Click to Edit">${MONTHS[mi]}: ${fmt(f.paid||0)} ${f.receipt?'#'+f.receipt:''} ✏️</span>`);
+    }
+  }
+  if (paidMonths.length) {
+    histContent.innerHTML = paidMonths.join('') + '<div style="font-size:0.75rem;color:var(--muted);margin-top:6px;">👆 Click to edit</div>';
+    histDiv.style.display = 'block';
+  } else { histDiv.style.display = 'none'; }
+}
+
+function editPayment(studentId, mIdx) {
+  const f = fees[studentId] && fees[studentId][mIdx] ? fees[studentId][mIdx] : {};
+  document.getElementById('qMonth').value = mIdx;
+  document.getElementById('qAmt').value = f.paid || 0;
+  document.getElementById('qRcpt').value = f.receipt || '';
+  document.getElementById('qDate').value = f.date || '';
+  document.getElementById('qNote').value = f.note || '';
+  toast(`✏️ Editing ${MONTHS[mIdx]} payment`);
+}
+
+function sendWhatsAppReminder() {
+  const s = currentQuickStudent;
+  if (!s) return;
+  const mIdx = parseInt(document.getElementById('qMonth').value);
+  const f = (fees[s.id] && fees[s.id][mIdx]) || { paid:0 };
+  const balance = s.fee - Number(f.paid||0);
+  const msg = buildReminderMessage(s, mIdx, balance);
+  window.open('https://wa.me/' + cleanPhone(s.phone) + '?text=' + encodeURIComponent(msg), '_blank');
+}
+
 async function quickSaveFee() {
-  const sl = parseInt(document.getElementById('qSlNo').value);
-  const s = students[sl - 1];
+  const s = currentQuickStudent;
   if (!s) { toast('Student not found!', false); return; }
   const mIdx = parseInt(document.getElementById('qMonth').value);
   const paid = parseFloat(document.getElementById('qAmt').value) || 0;
@@ -1334,14 +1439,18 @@ async function quickSaveFee() {
   if (!fees[s.id]) fees[s.id] = {};
   fees[s.id][mIdx] = { paid, amount: s.fee, status, receipt: rcpt, date, note };
   save('busFees', fees);
-  await cloudSave(); recentEntries.unshift({ sl, name: s.name, cls: s.cls, month: MONTHS[mIdx], paid, receipt: rcpt, date, status });
+  await cloudSave();
+  renderRecentEntries();
+  recentEntries.unshift({ sl: students.indexOf(s)+1, id: s.id, name: s.name, cls: s.cls, month: MONTHS[mIdx], mIdx, paid, receipt: rcpt, date, status });
   renderRecentEntries();
   toast(`✅ ${s.name} — ${MONTHS[mIdx]} saved! Receipt: ${rcpt}`);
-  // Auto-increment to next student
-  document.getElementById('qSlNo').value = sl + 1;
+  // NO SL increment - stay on same student
+  showPayHistory(s);
+  // Auto next unpaid month
+  document.getElementById('qMonth').value = getAutoMonth(s.id);
   document.getElementById('qRcpt').value = '';
   document.getElementById('qNote').value = '';
-  quickLookup();
+  document.getElementById('qAmt').value = s.fee;
   renderFeeEntry();
 }
 
@@ -1349,7 +1458,7 @@ function renderRecentEntries() {
   const card = document.getElementById('recentEntriesCard');
   if (!recentEntries.length) { card.style.display = 'none'; return; }
   card.style.display = 'block';
-  document.getElementById('recentTable').innerHTML = recentEntries.map(e => `
+  document.getElementById('recentTable').innerHTML = recentEntries.map((e,i) => `
     <tr>
       <td class="text-muted">${e.sl}</td>
       <td><b>${e.name}</b></td>
@@ -1359,16 +1468,37 @@ function renderRecentEntries() {
       <td class="mono" style="color:var(--bus);font-weight:800;">${e.receipt}</td>
       <td class="text-muted">${e.date}</td>
       <td>${e.status==='paid'?'<span class="badge badge-paid">Paid</span>':e.status==='partial'?'<span class="badge badge-partial">Partial</span>':'<span class="badge badge-unpaid">Unpaid</span>'}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="editFromHistory(${i})">✏️</button></td>
     </tr>`).join('');
+}
+
+function editFromHistory(i) {
+  const e = recentEntries[i];
+  const s = students.find(x => x.id === e.id);
+  if (!s) return;
+  document.getElementById('qSlNo').value = students.indexOf(s) + 1;
+  quickLookup();
+  setTimeout(() => {
+    document.getElementById('qMonth').value = e.mIdx;
+    document.getElementById('qAmt').value = e.paid;
+    document.getElementById('qRcpt').value = e.receipt;
+    document.getElementById('qDate').value = e.date;
+  }, 150);
+  toast(`✏️ Editing ${e.name} — ${e.month}`);
 }
 
 function quickClear() {
   document.getElementById('qSlNo').value = '';
+  if(document.getElementById('qNameSearch')) document.getElementById('qNameSearch').value = '';
+  if(document.getElementById('qNameResults')) document.getElementById('qNameResults').style.display = 'none';
   document.getElementById('qAmt').value = '';
   document.getElementById('qRcpt').value = '';
   document.getElementById('qNote').value = '';
-  document.getElementById('qStudentInfo').innerHTML = '<span style="color:var(--muted);font-weight:700;">← Enter SL No to find student</span>';
+  document.getElementById('qStudentInfo').innerHTML = '<span style="color:var(--muted);font-weight:700;">← SL No ഇടുക അല്ലെങ്കിൽ Name Search ചെയ്യുക</span>';
   document.getElementById('qEntryForm').style.display = 'none';
+  if(document.getElementById('qPayHistory')) document.getElementById('qPayHistory').style.display = 'none';
+  if(document.getElementById('qWhatsApp')) document.getElementById('qWhatsApp').style.display = 'none';
+  currentQuickStudent = null;
 }
 
 async function syncNow() {
@@ -1423,16 +1553,20 @@ function renderPendingList() {
     return `<tr>
       <td><input type="checkbox" class="pending-check" data-id="${s.id}" ${checked} onchange="pendingSelections['${s.id}']=this.checked"></td>
       <td class="text-muted">${i+1}</td>
-      <td><b>${s.name}</b></td>
-      <td>${s.cls}</td>
-      <td>${s.parent}</td>
-      <td>${s.phone}</td>
-      <td class="mono">${fmt(s.fee)}</td>
-      <td class="mono text-green">${fmt(f.paid||0)}</td>
-      <td class="mono text-red">${fmt(balance)}</td>
+      <td>
+        <b>${s.name}</b><br>
+        <span class="text-muted">${s.cls}</span><br>
+        <span class="text-muted" style="font-size:0.78rem;">📞 ${s.phone}</span>
+      </td>
+      <td>
+        ${s.parent}<br>
+        <span class="route-tag">${getRoute(s.routeId)||'—'}</span>
+      </td>
+      <td class="mono text-red"><b>${fmt(balance)}</b><br><span class="text-muted" style="font-size:0.75rem;">Due: ${fmt(s.fee)}<br>Paid: ${fmt(f.paid||0)}</span></td>
       <td>${badge}</td>
-      <td><button class="btn btn-green btn-sm" onclick="sendSingleWhatsApp('${s.id}',${mIdx})">💬 Remind</button></td>
+      <td><button class="btn btn-green btn-sm" onclick="sendSingleWhatsApp('${s.id}',${mIdx})">💬</button></td>
     </tr>`;
+  }).join('');
   }).join('');
 }
 
